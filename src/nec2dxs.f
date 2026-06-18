@@ -1,3 +1,24 @@
+C	av00	01-mar-02	First compile with Gnu77 compiler for windows
+C				(Thanks to Raymond Anderson for letting me know
+C				about this compiler and doing initial compilations)
+C	av01	14-mar-02	Var PI not used in routine GWAVE
+C	av02	14-mar-02	Sub SECOND already intrinsic function
+C	av03	15-mar-02	Multiple changes to include SOMNEC routines in nec2d.exe 
+C	av04	16-mar-02	Status='NEW', seems not to replace existing file.
+C	av05	21-okt-02	Max number of loads (LOADMX) made equal to max-nr of segments.
+C	av06	21-okt-02	Max number of NT cards (NETMX) increased form 30 to 99
+C	av07	21-okt-02	Max number of EX cards (NSMAX) increased form 30 to 99
+C	av08  22-oct-02	Use of VSRC is uncertain, in some sources equal 10 and some 
+C				equal 30 (=nr EX?). What should be new value ??? 
+C	av09	??		??
+C	av10	30-jan-03	Used DGJJ port of G77 compiler which delivers speed increase
+C				from 30 to 60%
+C     History:
+C        Date      Change
+C      -------     ----------------------------------------------
+C      5/04/95     Matrix re-transposed in subroutine FACTR.
+C                  FACTR and SOLVE changed for non-transposed matrix.
+C
 C     PROGRAM NEC(INPUT,TAPE5=INPUT,OUTPUT,TAPE11,TAPE12,TAPE13,TAPE14,
 C    1TAPE15,TAPE16,TAPE20,TAPE21)
 C
@@ -19,8 +40,10 @@ C     INFRINGE PRIVATELY-OWNED RIGHTS.
 C
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'	! Declares MAXSEG,MAXMAT,LOADMX,NETMX and NSMAX
+					! AV05,AV06,AV07
       PARAMETER (IRESRV=MAXMAT**2)
+
       IMPLICIT REAL*8(A-H,O-Z)
       CHARACTER AIN*2,ATST*2,INFILE*80,OUTFILE*80
 C***
@@ -28,42 +51,58 @@ C***
 C      CHARACTER INMSG*48,OUTMSG*40
 C      INTEGER*2 GPWNXY(2)
 C      LOGICAL*4 GetPut,LGTPT
+
+	integer*2	llneg
+
       COMPLEX*16  CM,FJ,VSANT,ETH,EPH,ZRATI,CUR,CURI,ZARRAY,ZRATI2
       COMPLEX*16  EX,EY,EZ,ZPED,VQD,VQDS,T1,Y11A,Y12A,EPSC,U,U2,XX1,XX2
       COMPLEX*16  AR1,AR2,AR3,EPSCF,FRATI
       COMMON /DATA/ X(MAXSEG),Y(MAXSEG),Z(MAXSEG),SI(MAXSEG),BI(MAXSEG),
-     &ALP(MAXSEG),BET(MAXSEG),WLAM,ICON1(2*MAXSEG),ICON2(2*MAXSEG),
-     &ITAG(2*MAXSEG),ICONX(MAXSEG),LD,N1,N2,N,NP,M1,M2,M,MP,IPSYM
+     -ALP(MAXSEG),BET(MAXSEG),WLAM,ICON1(2*MAXSEG),ICON2(2*MAXSEG),
+     -ITAG(2*MAXSEG),ICONX(MAXSEG),LD,N1,N2,N,NP,M1,M2,M,MP,IPSYM
       COMMON /CMB/CM(IRESRV)
       COMMON /MATPAR/ ICASE,NBLOKS,NPBLK,NLAST,NBLSYM,NPSYM,NLSYM,IMAT,
-     1ICASX,NBBX,NPBX,NLBX,NBBL,NPBL,NLBL
+     -ICASX,NBBX,NPBX,NLBX,NBBL,NPBL,NLBL
       COMMON/SAVE/EPSR,SIG,SCRWLT,SCRWRT,FMHZ,IP(2*MAXSEG),KCOM
       COMMON/CSAVE/COM(19,5)
       COMMON /CRNT/ AIR(MAXSEG),AII(MAXSEG),BIR(MAXSEG),BII(MAXSEG),
-     &CIR(MAXSEG),CII(MAXSEG),CUR(3*MAXSEG)
+     -CIR(MAXSEG),CII(MAXSEG),CUR(3*MAXSEG)
       COMMON /GND/ZRATI,ZRATI2,FRATI,T1,T2,CL,CH,SCRWL,SCRWR,NRADL,
-     &KSYMP,IFAR,IPERF
+     -KSYMP,IFAR,IPERF
       COMMON /ZLOAD/ ZARRAY(MAXSEG),NLOAD,NLODF
       COMMON/YPARM/Y11A(5),Y12A(20),NCOUP,ICOUP,NCTAG(5),NCSEG(5)
       COMMON /SEGJ/ AX(30),BX(30),CX(30),JCO(30),JSNO,ISCON(50),NSCON,
-     1IPCON(10),NPCON
-      COMMON/VSORC/VQD(30),VSANT(30),VQDS(30),IVQD(30),ISANT(30),
-     1IQDS(30),NVQD,NSANT,NQDS
-      COMMON/NETCX/ZPED,PIN,PNLS,X11R(30),X11I(30),X12R(30),X12I(30),
-     &X22R(30),X22I(30),NTYP(30),ISEG1(30),ISEG2(30),NEQ,NPEQ,NEQ2,
-     &NONET,NTSOL,NPRINT,MASYM
+     -IPCON(10),NPCON
+
+Cav07 COMMON/VSORC/VQD(30),VSANT(30),VQDS(30),IVQD(30),ISANT(30),
+Cav07 -IQDS(30),NVQD,NSANT,NQDS
+      COMMON/VSORC/VQD(nsmax),VSANT(nsmax),VQDS(nsmax),IVQD(nsmax),
+     -ISANT(nsmax),IQDS(nsmax),NVQD,NSANT,NQDS			! av07
+
+Cav06 COMMON/NETCX/ZPED,PIN,PNLS,X11R(30),X11I(30),X12R(30),X12I(30),
+C     -X22R(30),X22I(30),NTYP(30),ISEG1(30),ISEG2(30),NEQ,NPEQ,NEQ2,
+Cav06 -NONET,NTSOL,NPRINT,MASYM
+
+      COMMON/NETCX/ZPED,PIN,PNLS,X11R(netmx),X11I(netmx),X12R(netmx),
+     -X12I(netmx),X22R(netmx),X22I(netmx),NTYP(netmx),ISEG1(netmx),
+     -ISEG2(netmx),NEQ,NPEQ,NEQ2,NONET,NTSOL,NPRINT,MASYM	! av06
+
       COMMON/FPAT/THETS,PHIS,DTH,DPH,RFLD,GNOR,CLT,CHT,EPSR2,SIG2,
-     &XPR6,PINR,PNLR,PLOSS,XNR,YNR,ZNR,DXNR,DYNR,DZNR,NTH,NPH,IPD,IAVP,
-     &INOR,IAX,IXTYP,NEAR,NFEH,NRX,NRY,NRZ
+     -XPR6,PINR,PNLR,PLOSS,XNR,YNR,ZNR,DXNR,DYNR,DZNR,NTH,NPH,IPD,IAVP,
+     -INOR,IAX,IXTYP,NEAR,NFEH,NRX,NRY,NRZ
       COMMON /GGRID/ AR1(11,10,4),AR2(17,5,4),AR3(9,8,4),EPSCF,DXA(3),
-     1DYA(3),XSA(3),YSA(3),NXA(3),NYA(3)
+     -DYA(3),XSA(3),YSA(3),NXA(3),NYA(3)
       COMMON/GWAV/U,U2,XX1,XX2,R1,R2,ZMH,ZPH
 C***
       COMMON /PLOT/ IPLP1,IPLP2,IPLP3,IPLP4
 C***
       DIMENSION CAB(1),SAB(1),X2(1),Y2(1),Z2(1)
-      DIMENSION LDTYP(30),LDTAG(30),LDTAGF(30),LDTAGT(30),ZLR(30),
-     1ZLI(30),ZLC(30)
+
+Cav05 DIMENSION LDTYP(30),LDTAG(30),LDTAGF(30),LDTAGT(30),ZLR(30),
+Cav05 -ZLI(30),ZLC(30)
+      DIMENSION LDTYP(loadmx),LDTAG(loadmx),LDTAGF(loadmx),
+     -LDTAGT(loadmx),ZLR(loadmx),ZLI(loadmx),ZLC(loadmx)	! av05
+
       DIMENSION ATST(22),PNET(6),HPOL(3),IX(2*MAXSEG)
       DIMENSION FNORM(200)
       DIMENSION T1X(1),T1Y(1),T1Z(1),T2X(1),T2Y(1),T2Z(1)
@@ -72,61 +111,75 @@ C***
      &SITEMP(MAXSEG),BITEMP(MAXSEG)
       EQUIVALENCE (CAB,ALP),(SAB,BET),(X2,SI),(Y2,ALP),(Z2,BET)
       EQUIVALENCE (T1X,SI),(T1Y,ALP),(T1Z,BET),(T2X,ICON1),(T2Y,ICON2),
-     1 (T2Z,ITAG)
+     -(T2Z,ITAG)
       DATA ATST/'CE','FR','LD','GN','EX','NT','XQ','NE','GD','RP','CM',
-     1 'NX','EN','TL','PT','KH','NH','PQ','EK','WG','CP','PL'/
+     -'NX','EN','TL','PT','KH','NH','PQ','EK','WG','CP','PL'/
       DATA HPOL/6HLINEAR,5HRIGHT,4HLEFT/
       DATA PNET/6H      ,2H  ,6HSTRAIG,2HHT,6HCROSSE,1HD/
       DATA TA/1.745329252D-02/,CVEL/299.8/
-      DATA LOADMX,NSMAX,NETMX/30,30,30/,NORMF/200/
-706   CONTINUE
-C
-C     History:
-C        Date      Change
-C      -------     ----------------------------------------------
-C      5/04/95     Matrix re-transposed in subroutine FACTR.
-C                  FACTR and SOLVE changed for non-transposed matrix.
-C
+
+Cav05-7 DATA LOADMX,NSMAX,NETMX/30,30,30/,NORMF/200/
+      DATA NORMF/200/							
+
+      print *, ''
+      print *, 'Numerical Electromagnetics Code, ',
+     &'double precision version (nec2d)'
+      print *, 'developed at Lawrence Livermore Lab., ',
+     &'Livermore, CA., by G. Burke'
+      print *, '(burke@icdc.llnl.gov) and A. Poggio.'
+Cav03      Write(*,*)
+Cav03      & 'Fortran file was created 4/11/80, last changed: Jan 15, 96, by'
+Cav03      Write(*,*)
+Cav03     & 'J. Bergervoet (bergervo@prl.philips.nl)'
+      print *, 'Maximum number of segments in core : MAXMAT=',MAXMAT
+      If(MaxSeg.ne.MaxMat) 
+     &print *, 'Maximum when using swap files      : MAXSEG=',MAXSEG
+
+      print *, ''
+	print *, 
+     & 'Merged nec2d/som2d file created by Arie. (4nec2@gmx.net)'
+	print *,
+     & 'V2.2  31-jan-2003   (maxLD=MaxSeg, MaxEX=99, MaxTL=64)'
+      print *, ''
+
 C***VAX
+706   CONTINUE
       WRITE(*,700)
 700   FORMAT(' ENTER NAME OF INPUT FILE >',$)
+Cav03 READ(*,701,ERR=702) INFILE
+      READ(*,701,ERR=706,END=708) INFILE				! av03
 701   FORMAT(A)
-      READ(*,701,ERR=702) INFILE
-C      IF(INFILE.EQ.' ')INFILE='SYS$INPUT'
+C     IF(INFILE.EQ.' ')INFILE='SYS$INPUT'
       OPEN (UNIT=2,FILE=INFILE,STATUS='OLD',ERR=702)
-C      OPEN (UNIT=2,FILE=INFILE,STATUS='OLD',ACTION='READ',ERR=702)
-C      OPEN (UNIT=2,FILE=INFILE,STATUS='OLD',READONLY,ERR=702)
+C     OPEN (UNIT=2,FILE=INFILE,STATUS='OLD',ACTION='READ',ERR=702)
+C     OPEN (UNIT=2,FILE=INFILE,STATUS='OLD',READONLY,ERR=702)
+
 707   CONTINUE
       WRITE(*,703)
 703   FORMAT(' ENTER NAME OF OUTPUT FILE >',$)
-      READ(*,701,ERR=704) OUTFILE
-C      IF(OUTFILE.EQ.' ')OUTFILE='SYS$OUTPUT'
-C      OPEN (UNIT=3,FILE=OUTFILE,STATUS='NEW',ERR=704)
+cav03 READ(*,701,ERR=704) OUTFILE
+      READ(*,701,ERR=707,end=706) OUTFILE				! av03
+C     IF(OUTFILE.EQ.' ')OUTFILE='SYS$OUTPUT'
+C     OPEN (UNIT=3,FILE=OUTFILE,STATUS='NEW',ERR=704)
       OPEN (UNIT=3,FILE=OUTFILE,STATUS='UNKNOWN',ERR=704)
       GO TO 705
-702   CALL ERROR
+
+Cav03 702   CALL ERROR
+702	print *, 'Error opening input-file:',infile		! av03
       GO TO 706
-704   CALL ERROR
+
+Cav03 704   CALL ERROR
+704	print *, 'Error opening output-file:',outfile		! av03
       GO TO 707
-C***MAC
-C     OPEN IN AND OUT FILES WITH DIALOG BOX FOR MACINTOSH
-C
-C      INMSG='Select nec input file    (NEC-2D)               '
-C      OUTMSG='Enter name of output file               '
-C      GPWNXY(1)=50
-C      GPWNXY(2)=100
-C702   LGTPT= GetPut(1,GPWNXY,INMSG,INFILE,IVOL,1,'TEXT')
-C      IF(.NOT.LGTPT)STOP
-C      OPEN (UNIT=2,FILE=INFILE,STATUS='OLD',ACTION='READ',ERR=702)
-C704   LGTPT= GetPut(0,GPWNXY,OUTMSG,OUTFILE,IVOL,1,'TEXT')
-C      IF(.NOT.LGTPT)STOP
-C      OPEN (UNIT=3,FILE=OUTFILE,STATUS='UNKNOWN',ERR=704)
-C      WRITE(*,*)' NEC-2D RUN IN PROGRESS'
-C***MAC
+
+708	stop
+
 705   CONTINUE
-      CALL SECONDS(EXTIM)
+      print *,''
+      CALL SECOND(EXTIM)
       FJ=(0.,1.)
       LD=MAXSEG
+Cav03 NXA(1)=0		! NXA is now init by block-data SOMSET
 1     KCOM=0
 C***
       IFRTIMW=0
@@ -137,14 +190,18 @@ C***
       READ(2,125)AIN,(COM(I,KCOM),I=1,19)
       CALL UPCASE(AIN,AIN,LAIN)
       IF(KCOM.GT.1)GO TO 3
+
       WRITE(3,126)
       WRITE(3,127)
       WRITE(3,128)
+
 3     WRITE(3,129) (COM(I,KCOM),I=1,19)
       IF (AIN.EQ.ATST(11)) GO TO 2
       IF (AIN.EQ.ATST(1)) GO TO 4
+
       WRITE(3,130)
       STOP
+
 4     CONTINUE
       DO 5 I=1,LD
 5     ZARRAY(I)=(0.,0.)
@@ -163,6 +220,7 @@ C
       NEQ2=N-N1+2*(M-M1)+NSCON+2*NPCON
       CALL FBNGF(NEQ,NEQ2,IRESRV,IB11,IC11,ID11,IX11)
       GO TO 6
+
 326   NEQ=N+2*M
       NEQ2=0
       IB11=1
@@ -198,6 +256,8 @@ C***
       IRNGF=0
       NCOUP=0
       ICOUP=0
+	llneg = 0	! av03, Default = No freq-loop/Neg-sigma
+
       IF(ICASX.GT.0)GO TO 14
       FMHZ=CVEL
       NLODF=0
@@ -213,29 +273,30 @@ C
       MPCNT=MPCNT+1
       WRITE(3,137) MPCNT,AIN,ITMP1,ITMP2,ITMP3,ITMP4,TMP1,TMP2,TMP3,
      1TMP4,TMP5,TMP6
-      IF (AIN.EQ.ATST(2)) GO TO 16
-      IF (AIN.EQ.ATST(3)) GO TO 17
-      IF (AIN.EQ.ATST(4)) GO TO 21
-      IF (AIN.EQ.ATST(5)) GO TO 24
-      IF (AIN.EQ.ATST(6)) GO TO 28
-      IF (AIN.EQ.ATST(14)) GO TO 28
-      IF (AIN.EQ.ATST(15)) GO TO 31
-      IF (AIN.EQ.ATST(18)) GO TO 319
-      IF (AIN.EQ.ATST(7)) GO TO 37
-      IF (AIN.EQ.ATST(8)) GO TO 32
-      IF (AIN.EQ.ATST(17)) GO TO 208
-      IF (AIN.EQ.ATST(9)) GO TO 34
-      IF (AIN.EQ.ATST(10)) GO TO 36
-      IF (AIN.EQ.ATST(16)) GO TO 305
-      IF (AIN.EQ.ATST(19)) GO TO 320
-      IF (AIN.EQ.ATST(12)) GO TO 1
-      IF (AIN.EQ.ATST(20)) GO TO 322
-      IF (AIN.EQ.ATST(21)) GO TO 304
+      IF (AIN.EQ.ATST(2)) GO TO 16	! FR
+      IF (AIN.EQ.ATST(3)) GO TO 17	! LD
+      IF (AIN.EQ.ATST(4)) GO TO 21	! GN
+      IF (AIN.EQ.ATST(5)) GO TO 24	! EX
+      IF (AIN.EQ.ATST(6)) GO TO 28	! NT
+      IF (AIN.EQ.ATST(14)) GO TO 28	! TL
+      IF (AIN.EQ.ATST(15)) GO TO 31	! PT
+      IF (AIN.EQ.ATST(18)) GO TO 319 ! PQ
+      IF (AIN.EQ.ATST(7)) GO TO 37	! XQ
+      IF (AIN.EQ.ATST(8)) GO TO 32	! NE
+      IF (AIN.EQ.ATST(17)) GO TO 208 ! NH
+      IF (AIN.EQ.ATST(9)) GO TO 34	! GD
+      IF (AIN.EQ.ATST(10)) GO TO 36	! RP
+      IF (AIN.EQ.ATST(16)) GO TO 305 ! KH
+      IF (AIN.EQ.ATST(19)) GO TO 320 ! EK
+      IF (AIN.EQ.ATST(12)) GO TO 1	! NX
+      IF (AIN.EQ.ATST(20)) GO TO 322 ! WG
+      IF (AIN.EQ.ATST(21)) GO TO 304 ! CP
 C***
-      IF (AIN.EQ.ATST(22)) GO TO 330
+      IF (AIN.EQ.ATST(22)) GO TO 330 ! PL ???
 C***
-      IF (AIN.NE.ATST(13)) GO TO 15
-      CALL SECONDS(TMP1)
+      IF (AIN.NE.ATST(13)) GO TO 15	! EN
+
+      CALL SECOND(TMP1)
       TMP1=TMP1-EXTIM
       WRITE(3,201) TMP1
       STOP
@@ -248,6 +309,7 @@ C
       IF(ICASX.EQ.0)GO TO 8
       WRITE(3,303) AIN
       STOP
+
 8     NFRQ=ITMP2
       IF (NFRQ.EQ.0) NFRQ=1
       FMHZ=TMP1
@@ -302,6 +364,7 @@ C
       IF (NLOAD.LE.LOADMX) GO TO 19
       WRITE(3,139)
       STOP
+
 19    LDTYP(NLOAD)=ITMP1
       LDTAG(NLOAD)=ITMP2
       IF (ITMP4.EQ.0) ITMP4=ITMP3
@@ -310,6 +373,7 @@ C
       IF (ITMP4.GE.ITMP3) GO TO 20
       WRITE(3,140)  NLOAD,ITMP3,ITMP4
       STOP
+
 20    ZLR(NLOAD)=TMP1
       ZLI(NLOAD)=TMP2
       ZLC(NLOAD)=TMP3
@@ -321,12 +385,14 @@ C
       IF(ICASX.EQ.0)GO TO 10
       WRITE(3,303) AIN
       STOP
+
 10    IF (IGO.GT.2) IGO=2
       IF (ITMP1.NE.(-1)) GO TO 22
       KSYMP=1
       NRADL=0
       IPERF=0
       GO TO 14
+
 22    IPERF=ITMP1
       NRADL=ITMP2
       KSYMP=2
@@ -336,9 +402,11 @@ C
       IF(IPERF.NE.2)GO TO 314
       WRITE(3,390)
       STOP
+
 314   SCRWLT=TMP3
       SCRWRT=TMP4
       GO TO 14
+
 23    EPSR2=TMP3
       SIG2=TMP4
       CLT=TMP5
@@ -368,6 +436,7 @@ C
       IF (NSANT.LE.NSMAX) GO TO 26
 206   WRITE(3,141)
       STOP
+
 26    ISANT(NSANT)=ISEGNO(ITMP2,ITMP3)
       VSANT(NSANT)=DCMPLX(TMP1,TMP2)
       IF (ABS(VSANT(NSANT)).LT.1.D-20) VSANT(NSANT)=(1.,0.)
@@ -375,6 +444,7 @@ C
       ZPNORM=TMP3
       IF (IPED.EQ.1.AND.ZPNORM.GT.0) IPED=2
       GO TO 14
+
 27    IF (IXTYP.EQ.0.OR.IXTYP.EQ.5) NTSOL=0
       IXTYP=ITMP1
       NTHI=ITMP2
@@ -399,10 +469,12 @@ C
       IFLOW=6
       IF (IGO.GT.3) IGO=3
       IF (ITMP2.EQ.(-1)) GO TO 14
+
 29    NONET=NONET+1
       IF (NONET.LE.NETMX) GO TO 30
       WRITE(3,142)
       STOP
+
 30    NTYP(NONET)=2
       IF (AIN.EQ.ATST(6)) NTYP(NONET)=1
       ISEG1(NONET)=ISEGNO(ITMP1,ITMP2)
@@ -425,7 +497,8 @@ C
       IPLP2=ITMP2
       IPLP3=ITMP3
       IPLP4=ITMP4
-      OPEN (UNIT=8,FILE='PLTDAT.NEC',STATUS='NEW',ERR=14)
+Cav04 OPEN (UNIT=8,FILE='PLTDAT.NEC',STATUS='NEW',ERR=14)
+      OPEN (UNIT=8,FILE='PLTDAT.NEC',STATUS='UNKNOWN',ERR=14) ! av04
 C***
       GO TO 14
 C
@@ -522,8 +595,10 @@ C
       IF (IFLOW.GT.7) GO TO 38
       IFLOW=7
       GO TO 40
+
 38    IFLOW=11
       GO TO 40
+
 39    IFAR=0
       RFLD=0.
       IPD=0
@@ -548,27 +623,28 @@ C     BEGINNING OF THE FREQUENCY DO LOOP
 C
 41    MHZ=1
 C***
-        IF(N.EQ.0 .OR. IFRTIMW .EQ. 1)GO TO 406
-        IFRTIMW=1
-        DO 445 I=1,N
-           XTEMP(I)=X(I)
-           YTEMP(I)=Y(I)
-           ZTEMP(I)=Z(I)
-           SITEMP(I)=SI(I)
-           BITEMP(I)=BI(I)
-445     CONTINUE
-406     IF(M.EQ.0 .OR. IFRTIMP .EQ. 1)GO TO 407
-        IFRTIMP=1
-        J=LD+1
-        DO 545 I=1,M
-           J=J-1
-           XTEMP(J)=X(J)
-           YTEMP(J)=Y(J)
-           ZTEMP(J)=Z(J)
-           BITEMP(J)=BI(J)
-545     CONTINUE
-407     CONTINUE
-        FMHZ1=FMHZ
+      IF(N.EQ.0 .OR. IFRTIMW .EQ. 1)GO TO 406
+      IFRTIMW=1
+      DO 445 I=1,N
+         XTEMP(I)=X(I)
+         YTEMP(I)=Y(I)
+         ZTEMP(I)=Z(I)
+         SITEMP(I)=SI(I)
+         BITEMP(I)=BI(I)
+445   CONTINUE
+
+406   IF(M.EQ.0 .OR. IFRTIMP .EQ. 1)GO TO 407
+      IFRTIMP=1
+      J=LD+1
+      DO 545 I=1,M
+         J=J-1
+         XTEMP(J)=X(J)
+         YTEMP(J)=Y(J)
+         ZTEMP(J)=Z(J)
+         BITEMP(J)=BI(J)
+545   CONTINUE
+407   CONTINUE
+      FMHZ1=FMHZ
 C***
 C     CORE ALLOCATION FOR PRIMARY INTERACTON MATRIX.  (A)
       IF(IMAT.EQ.0)CALL FBLOCK(NPEQ,NEQ,IRESRV,IRNGF,IPSYM)
@@ -581,7 +657,7 @@ C***
 43    FMHZ=FMHZ*DELFRQ
 44    FR=FMHZ/CVEL
 C***
-      WLAM=CVEL/FMHZ
+      WLAM=CVEL/FMHZ		! wavl=299.8/freq
       WRITE(3,145)  FMHZ,WLAM
       WRITE(3,196) RKH
       IF(IEXK.EQ.1)WRITE(3,321)
@@ -608,17 +684,28 @@ C***
 245   BI(J)=BITEMP(J)*FR2
 C***
 307   IGO=2
+
 C     STRUCTURE SEGMENT LOADING
+
 46    WRITE(3,146)
       IF(NLOAD.NE.0) CALL LOAD(LDTYP,LDTAG,LDTAGF,LDTAGT,ZLR,ZLI,ZLC)
+
       IF(NLOAD.EQ.0.AND.NLODF.EQ.0)WRITE(3,147)
       IF(NLOAD.EQ.0.AND.NLODF.NE.0)WRITE(3,327)
+
 C     GROUND PARAMETER
-      WRITE(3,148)
+
+      WRITE(3,148)			! Antenna environment
       IF (KSYMP.EQ.1) GO TO 49
       FRATI=(1.,0.)
       IF (IPERF.EQ.1) GO TO 48
-      IF(SIG.LT.0.)SIG=-SIG/(59.96*WLAM)
+
+Cav03 IF(SIG.LT.0.) SIG=-SIG/(59.96*WLAM)
+      IF (SIG.LT.0.) then		! av03, Negative sigma ?
+	   llneg = 1			! Set flag
+         SIG=-SIG/(59.96*WLAM)	! Make positive
+	endif
+
       EPSC=DCMPLX(EPSR,-SIG*WLAM*59.96)
       ZRATI=1./SQRT(EPSC)
       U=ZRATI
@@ -630,28 +717,51 @@ C     GROUND PARAMETER
       T2=SCRWR*DFLOAT(NRADL)
       WRITE(3,170)  NRADL,SCRWLT,SCRWRT
       WRITE(3,149)
-47    IF(IPERF.EQ.2)GO TO 328
-      WRITE(3,391)
+47    IF(IPERF.EQ.2)GO TO 328		! Somnec ground ?
+
+      WRITE(3,391)			! Finite ground
       GO TO 329
-328   CALL SOMNEC(EPSR, SIG, FMHZ)
+
+C******************************************************************************
+C	Include SomNec calculations
+C******************************************************************************
+
+328	if (llneg.le.1) then		! Single or first step ?
+	   if (llneg.eq.1) llneg=2	! If negative, only once
+   	   call som2d (fmhz,epsr,sig) ! Get SomNec data, av03
+	endif
+
+Cav03 328   IF(NXA(1).EQ.0)THEN
+C         OPEN(UNIT=21,FILE='SOM2D.NEC',STATUS='OLD',FORM='UNFORMATTED',
+C     &   ERR=800)
+C         GO TO 801
+C800      WRITE(3,900)
+C         STOP
+C801      READ(21)AR1,AR2,AR3,EPSCF,DXA,DYA,XSA,YSA,NXA,NYA
+Cav03      END IF
+
       FRATI=(EPSC-1.)/(EPSC+1.)
       IF(ABS((EPSCF-EPSC)/EPSC).LT.1.D-3)GO TO 400
-      WRITE(3,393) EPSCF,EPSC
+
+      WRITE(3,393) EPSCF,EPSC		! Error in ground param's
       STOP
-400   WRITE(3,392)
-329   WRITE(3,150)  EPSR,SIG,EPSC
+
+400   WRITE(3,392)			! Sommerfeld ground
+329   WRITE(3,150)  EPSR,SIG,EPSC	! Rel-diel-C, conduct, compl-diel-C
       GO TO 50
-48    WRITE(3,151)
+
+48    WRITE(3,151)	! Perfect ground
       GO TO 50
-49    WRITE(3,152)
+
+49    WRITE(3,152)	! Free space
 50    CONTINUE
 C * * *
 C     FILL AND FACTOR PRIMARY INTERACTION MATRIX
 C
-      CALL SECONDS (TIM1)
+      CALL SECOND (TIM1)
       IF(ICASX.NE.0)GO TO 324
       CALL CMSET(NEQ,CM,RKH,IEXK)
-      CALL SECONDS (TIM2)
+      CALL SECOND (TIM2)
       TIM=TIM2-TIM1
       CALL FACTRS(NPEQ,NEQ,CM,IP,IX,11,12,13,14)
       GO TO 323
@@ -662,11 +772,11 @@ C ****
 324   IF(NEQ2.EQ.0)GO TO 333
 C ****
       CALL CMNGF(CM(IB11),CM(IC11),CM(ID11),NPBX,NEQ,NEQ2,RKH,IEXK)
-      CALL SECONDS (TIM2)
+      CALL SECOND (TIM2)
       TIM=TIM2-TIM1
       CALL FACGF(CM,CM(IB11),CM(IC11),CM(ID11),CM(IX11),IP,IX,NP,N1,MP,
      1M1,NEQ,NEQ2)
-323   CALL SECONDS (TIM1)
+323   CALL SECOND (TIM1)
       TIM2=TIM1-TIM2
       WRITE(3,153)  TIM,TIM2
 333   IGO=3
@@ -1043,11 +1153,799 @@ C     NORMALIZED RECEIVING PATTERN PRINTED
      1 CONSTANT FROM FILE IS,1P,2E12.5,/,32X,9HREQUESTED,2E12.5)
 900   FORMAT(' ERROR OPENING SOMMERFELD GROUND FILE - SOM2D.NEC')
       END
+
+Cav03 ################## START OF SOM2D INCLUDE ########################
+
+C***********************************************************************
+      SUBROUTINE SOM2D (rmhz, repr, rsig)
+C***********************************************************************
+
+      IMPLICIT REAL*8(A-H,O-Z)
+C***
+      COMPLEX*16 CK1,CK1SQ,ERV,EZV,ERH,EPH,CKSM,CT1,CT2,CT3,CL1,CL2,CON,
+     -AR1,AR2,AR3,EPSCF
+      COMMON /EVLCOM/ CKSM,CT1,CT2,CT3,CK1,CK1SQ,CK2,CK2SQ,TKMAG,TSMAG,C
+     -K1R,ZPH,RHO,JH
+      COMMON /GGRID/ AR1(11,10,4),AR2(17,5,4),AR3(9,8,4),EPSCF,DXA(3),DY
+     -A(3),XSA(3),YSA(3),NXA(3),NYA(3)
+
+      CHARACTER*3  LCOMP(4)
+      DATA LCOMP/'ERV','EZV','ERH','EPH'/
+C
+Cav03 999   WRITE(*,21)
+Cav03 READ(*,*,ERR=999) EPR,SIG,FMHZ,IPT
+
+	epr = repr		! av03
+	sig = rsig		! av03
+	fmhz = rmhz		! av03
+	ipt=0			! No printing, av03
+
+Cdeb	write (*,100) fmhz,epr,sig
+Cdeb  100 format (' Som2d: Freq=',d10.5,' Diel=',d10.5,' Cond=',d10.5)
+
+Cav03      WRITE(*,100) EPR
+Cav03100   FORMAT("  RELATIVE DIELECTRIC CONSTANT (EPR)  = ", D20.5)
+Cav03      WRITE(*,101) SIG
+Cav03101   FORMAT("  SIGMA [CONDUCTIVITY IN MHOS/METER]  = ", D20.5)
+Cav03      WRITE(*,102) FMHZ
+Cav03102   FORMAT("                     FREQUENCY IN MHZ = ", D20.5)
+Cav03      IF(IPT == 1) WRITE(*,*) "   GRID FILE [SOM2D.OUT] WILL BE CREATED"
+Cav03      IF(IPT == 0) WRITE(*,*) "   NO GRID FILE WILL BE CREATED"
+Cav03      WRITE(*,*)
+C***
+      IF (SIG.LT.0.) GO TO 1
+      WLAM=299.8/FMHZ
+      EPSCF=DCMPLX(EPR,-SIG*WLAM*59.96)
+      GO TO 2
+1     EPSCF=DCMPLX(EPR,SIG)
+2     CONTINUE
+Cav03 2     CALL SECOND (TST)
+      CK2=6.283185308
+      CK2SQ=CK2*CK2
+C
+C     SOMMERFELD INTEGRAL EVALUATION USES EXP(-JWT), NEC USES EXP(+JWT),
+C     HENCE NEED CONJG(EPSCF).  CONJUGATE OF FIELDS OCCURS IN SUBROUTINE
+C     EVLUA.
+C
+      CK1SQ=CK2SQ*DCONJG(EPSCF)
+      CK1=SQRT(CK1SQ)
+      CK1R=DREAL(CK1)
+      TKMAG=100.*ABS(CK1)
+      TSMAG=100.*CK1*DCONJG(CK1)
+      CKSM=CK2SQ/(CK1SQ+CK2SQ)
+      CT1=.5*(CK1SQ-CK2SQ)
+      ERV=CK1SQ*CK1SQ
+      EZV=CK2SQ*CK2SQ
+      CT2=.125*(ERV-EZV)
+      ERV=ERV*CK1SQ
+      EZV=EZV*CK2SQ
+      CT3=.0625*(ERV-EZV)
+C
+C     LOOP OVER 3 GRID REGIONS
+C
+      DO 6 K=1,3
+      NR=NXA(K)
+      NTH=NYA(K)
+      DR=DXA(K)
+      DTH=DYA(K)
+      R=XSA(K)-DR
+      IRS=1
+      IF (K.EQ.1) R=XSA(K)
+      IF (K.EQ.1) IRS=2
+C
+C     LOOP OVER R.  (R=SQRT(RHO**2 + (Z+H)**2))
+C
+      DO 6 IR=IRS,NR
+      R=R+DR
+      THET=YSA(K)-DTH
+C
+C     LOOP OVER THETA.  (THETA=ATAN((Z+H)/RHO))
+C
+      DO 6 ITH=1,NTH
+      THET=THET+DTH
+      RHO=R*COS(THET)
+      ZPH=R*SIN(THET)
+      IF (RHO.LT.1.E-7) RHO=1.E-8
+      IF (ZPH.LT.1.E-7) ZPH=0.
+      CALL EVLUA (ERV,EZV,ERH,EPH)
+      RK=CK2*R
+      CON=-(0.,4.77147)*R/DCMPLX(COS(RK),-SIN(RK))
+      GO TO (3,4,5), K
+3     AR1(IR,ITH,1)=ERV*CON
+      AR1(IR,ITH,2)=EZV*CON
+      AR1(IR,ITH,3)=ERH*CON
+      AR1(IR,ITH,4)=EPH*CON
+      GO TO 6
+4     AR2(IR,ITH,1)=ERV*CON
+      AR2(IR,ITH,2)=EZV*CON
+      AR2(IR,ITH,3)=ERH*CON
+      AR2(IR,ITH,4)=EPH*CON
+      GO TO 6
+5     AR3(IR,ITH,1)=ERV*CON
+      AR3(IR,ITH,2)=EZV*CON
+      AR3(IR,ITH,3)=ERH*CON
+      AR3(IR,ITH,4)=EPH*CON
+6     CONTINUE
+C
+C     FILL GRID 1 FOR R EQUAL TO ZERO.
+C
+      CL2=-(0.,188.370)*(EPSCF-1.)/(EPSCF+1.)
+      CL1=CL2/(EPSCF+1.)
+      EZV=EPSCF*CL1
+      THET=-DTH
+      NTH=NYA(1)
+      DO 9 ITH=1,NTH
+      THET=THET+DTH
+      IF (ITH.EQ.NTH) GO TO 7
+      TFAC2=COS(THET)
+      TFAC1=(1.-SIN(THET))/TFAC2
+      TFAC2=TFAC1/TFAC2
+      ERV=EPSCF*CL1*TFAC1
+      ERH=CL1*(TFAC2-1.)+CL2
+      EPH=CL1*TFAC2-CL2
+      GO TO 8
+7     ERV=0.
+      ERH=CL2-.5*CL1
+      EPH=-ERH
+8     AR1(1,ITH,1)=ERV
+      AR1(1,ITH,2)=EZV
+      AR1(1,ITH,3)=ERH
+9     AR1(1,ITH,4)=EPH
+Cav03 CALL SECOND (TIM)
+C
+C     WRITE GRID ON TAPE21
+C
+Cav03      OPEN(UNIT=21,FILE='SOM2D.NEC',STATUS='UNKNOWN',FORM='UNFORMATTED')
+Cav03      WRITE (21) AR1,AR2,AR3,EPSCF,DXA,DYA,XSA,YSA,NXA,NYA
+Cav03      REWIND 21
+Cav03      IF (IPT.EQ.0) GO TO 14
+      IF (IPT.EQ.0) RETURN						! av03
+C
+C     PRINT GRID
+C
+Cav03 OPEN (UNIT=3,FILE='SOM2D.OUT',STATUS='NEW',ERR=14)
+cAV04 OPEN (UNIT=9,FILE='SOM2D.OUT',STATUS='NEW',ERR=14)	! av03
+      OPEN (UNIT=9,FILE='SOM2D.OUT',STATUS='UNKNOWN',ERR=14)! av04
+      WRITE(3,17) EPSCF
+      DO 13 K=1,3
+      NR=NXA(K)
+      NTH=NYA(K)
+      WRITE(9,18) K,XSA(K),DXA(K),NR,YSA(K),DYA(K),NTH
+      DO 13 L=1,4
+      WRITE(9,19) LCOMP(L)
+      DO 13 IR=1,NR
+      GO TO (10,11,12), K
+10    WRITE(9,20) IR,(AR1(IR,ITH,L),ITH=1,NTH)
+      GO TO 13
+11    WRITE(9,20) IR,(AR2(IR,ITH,L),ITH=1,NTH)
+      GO TO 13
+12    WRITE(9,20) IR,(AR3(IR,ITH,L),ITH=1,NTH)
+13    CONTINUE
+Cav03 14    TIM=TIM-TST
+Cav03 WRITE(*,16) TIM
+Cav03	STOP
+14	return								! av03
+C
+16    FORMAT (6H TIME=,1PE12.5)
+17    FORMAT (30H1NEC GROUND INTERPOLATION GRID,/,21H DIELECTRIC CONSTAN
+     1T=,1P2E12.5)
+18    FORMAT (///,5H GRID,I2,/,4X,5HR(1)=,F7.4,4X,3HDR=,F7.4,4X,3HNR=,I3
+     1,/,9H THET(1)=,F7.4,3X,4HDTH=,F7.4,3X,4HNTH=,I3,//)
+19    FORMAT (///,1X,A3)
+20    FORMAT (4H IR=,I3,/,1X,(1P10E12.5))
+21    FORMAT($,' ENTER EPR,SIG,FMHZ,IPT > ')
+22    FORMAT(' STARTING COMPUTATION OF SOMMERFELD INTEGRAL TABLES')
+      END
+
+C***********************************************************************
+      BLOCK DATA SOMSET
+C***********************************************************************
+
+      IMPLICIT REAL*8(A-H,O-Z)
+      COMPLEX*16 AR1,AR2,AR3,EPSCF
+      COMMON /GGRID/ AR1(11,10,4),AR2(17,5,4),AR3(9,8,4),EPSCF,DXA(3),DY
+     1A(3),XSA(3),YSA(3),NXA(3),NYA(3)
+      DATA NXA/11,17,9/,NYA/10,5,8/,XSA/0.,.2,.2/,YSA/0.,0.,.3490658504/
+      DATA DXA/.02,.05,.1/,DYA/.1745329252,.0872664626,.1745329252/
+
+      END
+
+C***********************************************************************
+      SUBROUTINE BESSEL (Z,J0,J0P)
+C***********************************************************************
+C
+C     BESSEL EVALUATES THE ZERO-ORDER BESSEL FUNCTION AND ITS DERIVATIVE
+C     FOR COMPLEX ARGUMENT Z.
+C
+      IMPLICIT REAL*8(A-H,O-Z)
+      SAVE
+      COMPLEX*16 J0,J0P,P0Z,P1Z,Q0Z,Q1Z,Z,ZI,ZI2,ZK,FJ,CZ,SZ,J0X,J0PX
+      DIMENSION M(101), A1(25), A2(25), FJX(2)
+      EQUIVALENCE (FJ,FJX)
+
+Cav03      DATA PI,C3,P10,P20,Q10,Q20/3.141592654,.7978845608,.0703125,.11215
+Cav03     120996,.125,.0732421875/
+      DATA C3,P10,P20,Q10,Q20/.7978845608,.0703125,.11215
+     -20996,.125,.0732421875/
+
+      DATA P11,P21,Q11,Q21/.1171875,.1441955566,.375,.1025390625/
+      DATA POF,INIT/.7853981635,0/,FJX/0.,1./
+
+      IF (INIT.EQ.0) GO TO 5
+1     ZMS=Z*DCONJG(Z)
+      IF (ZMS.GT.1.E-12) GO TO 2
+      J0=(1.,0.)
+      J0P=-.5*Z
+      RETURN
+
+2     IB=0
+      IF (ZMS.GT.37.21) GO TO 4
+      IF (ZMS.GT.36.) IB=1
+C     SERIES EXPANSION
+      IZ=1.+ZMS
+      MIZ=M(IZ)
+      J0=(1.,0.)
+      J0P=J0
+      ZK=J0
+      ZI=Z*Z
+      DO 3 K=1,MIZ
+      ZK=ZK*A1(K)*ZI
+      J0=J0+ZK
+3     J0P=J0P+A2(K)*ZK
+      J0P=-.5*Z*J0P
+      IF (IB.EQ.0) RETURN
+      J0X=J0
+      J0PX=J0P
+C     ASYMPTOTIC EXPANSION
+4     ZI=1./Z
+      ZI2=ZI*ZI
+      P0Z=1.+(P20*ZI2-P10)*ZI2
+      P1Z=1.+(P11-P21*ZI2)*ZI2
+      Q0Z=(Q20*ZI2-Q10)*ZI
+      Q1Z=(Q11-Q21*ZI2)*ZI
+      ZK=EXP(FJ*(Z-POF))
+      ZI2=1./ZK
+      CZ=.5*(ZK+ZI2)
+      SZ=FJ*.5*(ZI2-ZK)
+      ZK=C3*SQRT(ZI)
+      J0=ZK*(P0Z*CZ-Q0Z*SZ)
+      J0P=-ZK*(P1Z*SZ+Q1Z*CZ)
+      IF (IB.EQ.0) RETURN
+      ZMS=COS((SQRT(ZMS)-6.)*31.41592654)
+      J0=.5*(J0X*(1.+ZMS)+J0*(1.-ZMS))
+      J0P=.5*(J0PX*(1.+ZMS)+J0P*(1.-ZMS))
+      RETURN
+
+C     INITIALIZATION OF CONSTANTS
+5     DO 6 K=1,25
+      A1(K)=-.25D0/(K*K)
+6     A2(K)=1.D0/(K+1.D0)
+      DO 8 I=1,101
+      TEST=1.D0
+      DO 7 K=1,24
+      INIT=K
+      TEST=-TEST*I*A1(K)
+      IF (TEST.LT.1.D-6) GO TO 8
+7     CONTINUE
+8     M(I)=INIT
+      GO TO 1
+      END
+
+C***********************************************************************
+      SUBROUTINE EVLUA (ERV,EZV,ERH,EPH)
+C***********************************************************************
+C
+C     EVALUA CONTROLS THE INTEGRATION CONTOUR IN THE COMPLEX LAMBDA
+C     PLANE FOR EVALUATION OF THE SOMMERFELD INTEGRALS.
+C
+      IMPLICIT REAL*8(A-H,O-Z)
+      SAVE
+      COMPLEX*16 ERV,EZV,ERH,EPH,A,B,CK1,CK1SQ,BK,SUM,DELTA,ANS,DELTA2,
+     1CP1,CP2,CP3,CKSM,CT1,CT2,CT3
+      COMMON /CNTOUR/ A,B
+      COMMON /EVLCOM/ CKSM,CT1,CT2,CT3,CK1,CK1SQ,CK2,CK2SQ,TKMAG,TSMAG,C
+     1K1R,ZPH,RHO,JH
+      DIMENSION SUM(6), ANS(6)
+      DATA PTP/.6283185308/
+      DEL=ZPH
+      IF (RHO.GT.DEL) DEL=RHO
+      IF (ZPH.LT.2.*RHO) GO TO 4
+C
+C     BESSEL FUNCTION FORM OF SOMMERFELD INTEGRALS
+C
+      JH=0
+      A=(0.,0.)
+      DEL=1./DEL
+      IF (DEL.LE.TKMAG) GO TO 2
+      B=DCMPLX(.1*TKMAG,-.1*TKMAG)
+      CALL ROM1 (6,SUM,2)
+      A=B
+      B=DCMPLX(DEL,-DEL)
+      CALL ROM1 (6,ANS,2)
+      DO 1 I=1,6
+1     SUM(I)=SUM(I)+ANS(I)
+      GO TO 3
+2     B=DCMPLX(DEL,-DEL)
+      CALL ROM1 (6,SUM,2)
+3     DELTA=PTP*DEL
+      CALL GSHANK (B,DELTA,ANS,6,SUM,0,B,B)
+      GO TO 10
+C
+C     HANKEL FUNCTION FORM OF SOMMERFELD INTEGRALS
+C
+4     JH=1
+      CP1=DCMPLX(0.D0,.4*CK2)
+      CP2=DCMPLX(.6*CK2,-.2*CK2)
+      CP3=DCMPLX(1.02*CK2,-.2*CK2)
+      A=CP1
+      B=CP2
+      CALL ROM1 (6,SUM,2)
+      A=CP2
+      B=CP3
+      CALL ROM1 (6,ANS,2)
+      DO 5 I=1,6
+5     SUM(I)=-(SUM(I)+ANS(I))
+C     PATH FROM IMAGINARY AXIS TO -INFINITY
+      SLOPE=1000.
+      IF (ZPH.GT..001*RHO) SLOPE=RHO/ZPH
+      DEL=PTP/DEL
+      DELTA=DCMPLX(-1.D0,SLOPE)*DEL/SQRT(1.+SLOPE*SLOPE)
+      DELTA2=-DCONJG(DELTA)
+      CALL GSHANK (CP1,DELTA,ANS,6,SUM,0,BK,BK)
+      RMIS=RHO*(DREAL(CK1)-CK2)
+      IF (RMIS.LT.2.*CK2) GO TO 8
+      IF (RHO.LT.1.E-10) GO TO 8
+      IF (ZPH.LT.1.E-10) GO TO 6
+      BK=DCMPLX(-ZPH,RHO)*(CK1-CP3)
+      RMIS=-DREAL(BK)/ABS(DIMAG(BK))
+      IF(RMIS.GT.4.*RHO/ZPH)GO TO 8
+C     INTEGRATE UP BETWEEN BRANCH CUTS, THEN TO + INFINITY
+6     CP1=CK1-(.1,.2)
+      CP2=CP1+.2
+      BK=DCMPLX(0.D0,DEL)
+      CALL GSHANK (CP1,BK,SUM,6,ANS,0,BK,BK)
+      A=CP1
+      B=CP2
+      CALL ROM1 (6,ANS,1)
+      DO 7 I=1,6
+7     ANS(I)=ANS(I)-SUM(I)
+      CALL GSHANK (CP3,BK,SUM,6,ANS,0,BK,BK)
+      CALL GSHANK (CP2,DELTA2,ANS,6,SUM,0,BK,BK)
+      GO TO 10
+C     INTEGRATE BELOW BRANCH POINTS, THEN TO + INFINITY
+8     DO 9 I=1,6
+9     SUM(I)=-ANS(I)
+      RMIS=DREAL(CK1)*1.01
+      IF (CK2+1..GT.RMIS) RMIS=CK2+1.
+      BK=DCMPLX(RMIS,.99*DIMAG(CK1))
+      DELTA=BK-CP3
+      DELTA=DELTA*DEL/ABS(DELTA)
+      CALL GSHANK (CP3,DELTA,ANS,6,SUM,1,BK,DELTA2)
+10    ANS(6)=ANS(6)*CK1
+C     CONJUGATE SINCE NEC USES EXP(+JWT)
+      ERV=DCONJG(CK1SQ*ANS(3))
+      EZV=DCONJG(CK1SQ*(ANS(2)+CK2SQ*ANS(5)))
+      ERH=DCONJG(CK2SQ*(ANS(1)+ANS(6)))
+      EPH=-DCONJG(CK2SQ*(ANS(4)+ANS(6)))
+      RETURN
+      END
+
+C***********************************************************************
+      SUBROUTINE GSHANK (START,DELA,SUM,NANS,SEED,IBK,BK,DELB)
+C***********************************************************************
+C
+C     GSHANK INTEGRATES THE 6 SOMMERFELD INTEGRALS FROM START TO
+C     INFINITY (UNTIL CONVERGENCE) IN LAMBDA.  AT THE BREAK POINT, BK,
+C     THE STEP INCREMENT MAY BE CHANGED FROM DELA TO DELB.  SHANK S
+C     ALGORITHM TO ACCELERATE CONVERGENCE OF A SLOWLY CONVERGING SERIES
+C     IS USED
+C
+      IMPLICIT REAL*8(A-H,O-Z)
+      SAVE
+      COMPLEX*16 START,DELA,SUM,SEED,BK,DELB,A,B,Q1,Q2,ANS1,ANS2,A1,A2,
+     1AS1,AS2,DEL,AA
+      COMMON /CNTOUR/ A,B
+      DIMENSION Q1(6,20), Q2(6,20), ANS1(6), ANS2(6), SUM(6), SEED(6)
+      DATA CRIT/1.E-4/,MAXH/20/
+      RBK=DREAL(BK)
+      DEL=DELA
+      IBX=0
+      IF (IBK.EQ.0) IBX=1
+      DO 1 I=1,NANS
+1     ANS2(I)=SEED(I)
+      B=START
+2     DO 20 INT=1,MAXH
+      INX=INT
+      A=B
+      B=B+DEL
+      IF (IBX.EQ.0.AND.DREAL(B).GE.RBK) GO TO 5
+      CALL ROM1 (NANS,SUM,2)
+      DO 3 I=1,NANS
+3     ANS1(I)=ANS2(I)+SUM(I)
+      A=B
+      B=B+DEL
+      IF (IBX.EQ.0.AND.DREAL(B).GE.RBK) GO TO 6
+      CALL ROM1 (NANS,SUM,2)
+      DO 4 I=1,NANS
+4     ANS2(I)=ANS1(I)+SUM(I)
+      GO TO 11
+C     HIT BREAK POINT.  RESET SEED AND START OVER.
+5     IBX=1
+      GO TO 7
+6     IBX=2
+7     B=BK
+      DEL=DELB
+      CALL ROM1 (NANS,SUM,2)
+      IF (IBX.EQ.2) GO TO 9
+      DO 8 I=1,NANS
+8     ANS2(I)=ANS2(I)+SUM(I)
+      GO TO 2
+9     DO 10 I=1,NANS
+10    ANS2(I)=ANS1(I)+SUM(I)
+      GO TO 2
+11    DEN=0.
+      DO 18 I=1,NANS
+      AS1=ANS1(I)
+      AS2=ANS2(I)
+      IF (INT.LT.2) GO TO 17
+      DO 16 J=2,INT
+      JM=J-1
+      AA=Q2(I,JM)
+      A1=Q1(I,JM)+AS1-2.*AA
+      IF (DREAL(A1).EQ.0..AND.DIMAG(A1).EQ.0.) GO TO 12
+      A2=AA-Q1(I,JM)
+      A1=Q1(I,JM)-A2*A2/A1
+      GO TO 13
+12    A1=Q1(I,JM)
+13    A2=AA+AS2-2.*AS1
+      IF (DREAL(A2).EQ.0..AND.DIMAG(A2).EQ.0.) GO TO 14
+      A2=AA-(AS1-AA)*(AS1-AA)/A2
+      GO TO 15
+14    A2=AA
+15    Q1(I,JM)=AS1
+      Q2(I,JM)=AS2
+      AS1=A1
+16    AS2=A2
+17    Q1(I,INT)=AS1
+      Q2(I,INT)=AS2
+      AMG=ABS(DREAL(AS2))+ABS(DIMAG(AS2))
+      IF (AMG.GT.DEN) DEN=AMG
+18    CONTINUE
+      DENM=1.E-3*DEN*CRIT
+      JM=INT-3
+      IF (JM.LT.1) JM=1
+      DO 19 J=JM,INT
+      DO 19 I=1,NANS
+      A1=Q2(I,J)
+      DEN=(ABS(DREAL(A1))+ABS(DIMAG(A1)))*CRIT
+      IF (DEN.LT.DENM) DEN=DENM
+      A1=Q1(I,J)-A1
+      AMG=ABS(DREAL(A1))+ABS(DIMAG(A1))
+      IF (AMG.GT.DEN) GO TO 20
+19    CONTINUE
+      GO TO 22
+20    CONTINUE
+      WRITE(*,24)
+      DO 21 I=1,NANS
+21    WRITE(*,25) Q1(I,INX),Q2(I,INX)
+22    DO 23 I=1,NANS
+23    SUM(I)=.5*(Q1(I,INX)+Q2(I,INX))
+      RETURN
+C
+24    FORMAT (46H **** NO CONVERGENCE IN SUBROUTINE GSHANK ****)
+25    FORMAT (1X,1P10E12.5)
+      END
+
+C***********************************************************************
+      SUBROUTINE HANKEL (Z,H0,H0P)
+C***********************************************************************
+C
+C     HANKEL EVALUATES HANKEL FUNCTION OF THE FIRST KIND, ORDER ZERO,
+C     AND ITS DERIVATIVE FOR COMPLEX ARGUMENT Z.
+C
+      IMPLICIT REAL*8(A-H,O-Z)
+      SAVE
+      COMPLEX*16 CLOGZ,H0,H0P,J0,J0P,P0Z,P1Z,Q0Z,Q1Z,Y0,Y0P,Z,ZI,ZI2,ZK,
+     1FJ
+      DIMENSION M(101), A1(25), A2(25), A3(25), A4(25), FJX(2)
+      EQUIVALENCE (FJ,FJX)
+      DATA PI,GAMMA,C1,C2,C3,P10,P20/3.141592654,.5772156649,-.024578509
+     15,.3674669052,.7978845608,.0703125,.1121520996/
+      DATA Q10,Q20,P11,P21,Q11,Q21/.125,.0732421875,.1171875,.1441955566
+     1,.375,.1025390625/
+      DATA POF,INIT/.7853981635,0/,FJX/0.,1./
+      IF (INIT.EQ.0) GO TO 5
+1     ZMS=Z*DCONJG(Z)
+      IF (ZMS.NE.0.) GO TO 2
+      WRITE(*,9)
+      STOP
+2     IB=0
+      IF (ZMS.GT.16.81) GO TO 4
+      IF (ZMS.GT.16.) IB=1
+C     SERIES EXPANSION
+      IZ=1.+ZMS
+      MIZ=M(IZ)
+      J0=(1.,0.)
+      J0P=J0
+      Y0=(0.,0.)
+      Y0P=Y0
+      ZK=J0
+      ZI=Z*Z
+      DO 3 K=1,MIZ
+      ZK=ZK*A1(K)*ZI
+      J0=J0+ZK
+      J0P=J0P+A2(K)*ZK
+      Y0=Y0+A3(K)*ZK
+3     Y0P=Y0P+A4(K)*ZK
+      J0P=-.5*Z*J0P
+      CLOGZ=LOG(.5*Z)
+      Y0=(2.*J0*CLOGZ-Y0)/PI+C2
+      Y0P=(2./Z+2.*J0P*CLOGZ+.5*Y0P*Z)/PI+C1*Z
+      H0=J0+FJ*Y0
+      H0P=J0P+FJ*Y0P
+      IF (IB.EQ.0) RETURN
+      Y0=H0
+      Y0P=H0P
+C     ASYMPTOTIC EXPANSION
+4     ZI=1./Z
+      ZI2=ZI*ZI
+      P0Z=1.+(P20*ZI2-P10)*ZI2
+      P1Z=1.+(P11-P21*ZI2)*ZI2
+      Q0Z=(Q20*ZI2-Q10)*ZI
+      Q1Z=(Q11-Q21*ZI2)*ZI
+      ZK=EXP(FJ*(Z-POF))*SQRT(ZI)*C3
+      H0=ZK*(P0Z+FJ*Q0Z)
+      H0P=FJ*ZK*(P1Z+FJ*Q1Z)
+      IF (IB.EQ.0) RETURN
+      ZMS=COS((SQRT(ZMS)-4.)*31.41592654)
+      H0=.5*(Y0*(1.+ZMS)+H0*(1.-ZMS))
+      H0P=.5*(Y0P*(1.+ZMS)+H0P*(1.-ZMS))
+      RETURN
+
+C     INITIALIZATION OF CONSTANTS
+5     PSI=-GAMMA
+      DO 6 K=1,25
+      A1(K)=-.25D0/(K*K)
+      A2(K)=1.D0/(K+1.D0)
+      PSI=PSI+1.D0/K
+      A3(K)=PSI+PSI
+6     A4(K)=(PSI+PSI+1.D0/(K+1.D0))/(K+1.D0)
+      DO 8 I=1,101
+      TEST=1.D0
+      DO 7 K=1,24
+      INIT=K
+      TEST=-TEST*I*A1(K)
+      IF (TEST*A3(K).LT.1.D-6) GO TO 8
+7     CONTINUE
+8     M(I)=INIT
+      GO TO 1
+C
+9     FORMAT (34H ERROR - HANKEL NOT VALID FOR Z=0.)
+      END
+
+C***********************************************************************
+      SUBROUTINE LAMBDA (T,XLAM,DXLAM)
+C***********************************************************************
+C
+C     COMPUTE INTEGRATION PARAMETER XLAM=LAMBDA FROM PARAMETER T.
+C
+      IMPLICIT REAL*8(A-H,O-Z)
+      SAVE
+      COMPLEX*16 A,B,XLAM,DXLAM
+      COMMON /CNTOUR/ A,B
+      DXLAM=B-A
+      XLAM=A+DXLAM*T
+      RETURN
+      END
+
+C***********************************************************************
+      SUBROUTINE ROM1 (N,SUM,NX)
+C***********************************************************************
+C
+C     ROM1 INTEGRATES THE 6 SOMMERFELD INTEGRALS FROM A TO B IN LAMBDA.
+C     THE METHOD OF VARIABLE INTERVAL WIDTH ROMBERG INTEGRATION IS USED.
+C
+      IMPLICIT REAL*8(A-H,O-Z)
+      SAVE
+      COMPLEX*16 A,B,SUM,G1,G2,G3,G4,G5,T00,T01,T10,T02,T11,T20
+      COMMON /CNTOUR/ A,B
+      DIMENSION SUM(6), G1(6), G2(6), G3(6), G4(6), G5(6), T01(6), T10(6
+     1), T20(6)
+      DATA NM,NTS,RX/131072,4,1.E-4/
+      LSTEP=0
+      Z=0.
+      ZE=1.
+      S=1.
+      EP=S/(1.E4*NM)
+      ZEND=ZE-EP
+      DO 1 I=1,N
+1     SUM(I)=(0.,0.)
+      NS=NX
+      NT=0
+      CALL SAOA (Z,G1)
+2     DZ=S/NS
+      IF (Z+DZ.LE.ZE) GO TO 3
+      DZ=ZE-Z
+      IF (DZ.LE.EP) GO TO 17
+3     DZOT=DZ*.5
+      CALL SAOA (Z+DZOT,G3)
+      CALL SAOA (Z+DZ,G5)
+4     NOGO=0
+      DO 5 I=1,N
+      T00=(G1(I)+G5(I))*DZOT
+      T01(I)=(T00+DZ*G3(I))*.5
+      T10(I)=(4.*T01(I)-T00)/3.
+C     TEST CONVERGENCE OF 3 POINT ROMBERG RESULT
+      CALL TEST (DREAL(T01(I)),DREAL(T10(I)),TR,DIMAG(T01(I)),DIMAG(T10
+     1(I)),TI,0.d0)
+      IF (TR.GT.RX.OR.TI.GT.RX) NOGO=1
+5     CONTINUE
+      IF (NOGO.NE.0) GO TO 7
+      DO 6 I=1,N
+6     SUM(I)=SUM(I)+T10(I)
+      NT=NT+2
+      GO TO 11
+7     CALL SAOA (Z+DZ*.25,G2)
+      CALL SAOA (Z+DZ*.75,G4)
+      NOGO=0
+      DO 8 I=1,N
+      T02=(T01(I)+DZOT*(G2(I)+G4(I)))*.5
+      T11=(4.*T02-T01(I))/3.
+      T20(I)=(16.*T11-T10(I))/15.
+C     TEST CONVERGENCE OF 5 POINT ROMBERG RESULT
+      CALL TEST (DREAL(T11),DREAL(T20(I)),TR,DIMAG(T11),DIMAG(T20(I)),TI
+     1,0.d0)
+      IF (TR.GT.RX.OR.TI.GT.RX) NOGO=1
+8     CONTINUE
+      IF (NOGO.NE.0) GO TO 13
+9     DO 10 I=1,N
+10    SUM(I)=SUM(I)+T20(I)
+      NT=NT+1
+11    Z=Z+DZ
+      IF (Z.GT.ZEND) GO TO 17
+      DO 12 I=1,N
+12    G1(I)=G5(I)
+      IF (NT.LT.NTS.OR.NS.LE.NX) GO TO 2
+      NS=NS/2
+      NT=1
+      GO TO 2
+13    NT=0
+      IF (NS.LT.NM) GO TO 15
+      IF (LSTEP.EQ.1) GO TO 9
+      LSTEP=1
+      CALL LAMBDA (Z,T00,T11)
+      WRITE(*,18) T00
+      WRITE(*,19) Z,DZ,A,B
+      DO 14 I=1,N
+14    WRITE(*,19) G1(I),G2(I),G3(I),G4(I),G5(I)
+      GO TO 9
+15    NS=NS*2
+      DZ=S/NS
+      DZOT=DZ*.5
+      DO 16 I=1,N
+      G5(I)=G3(I)
+16    G3(I)=G2(I)
+      GO TO 4
+17    CONTINUE
+      RETURN
+C
+18    FORMAT (38H ROM1 -- STEP SIZE LIMITED AT LAMBDA =,1P2E12.5)
+19    FORMAT (1X,1P10E12.5)
+      END
+
+C***********************************************************************
+      SUBROUTINE SAOA (T,ANS)
+C***********************************************************************
+C
+C     SAOA COMPUTES THE INTEGRAND FOR EACH OF THE 6
+C     SOMMERFELD INTEGRALS FOR SOURCE AND OBSERVER ABOVE GROUND
+C
+      IMPLICIT REAL*8(A-H,O-Z)
+      SAVE
+      COMPLEX*16 ANS,XL,DXL,CGAM1,CGAM2,B0,B0P,COM,CK1,CK1SQ,CKSM,CT1,
+     1CT2,CT3,DGAM,DEN1,DEN2
+      COMMON /EVLCOM/ CKSM,CT1,CT2,CT3,CK1,CK1SQ,CK2,CK2SQ,TKMAG,TSMAG,C
+     1K1R,ZPH,RHO,JH
+      DIMENSION ANS(6)
+      CALL LAMBDA (T,XL,DXL)
+      IF (JH.GT.0) GO TO 1
+C     BESSEL FUNCTION FORM
+      CALL BESSEL (XL*RHO,B0,B0P)
+      B0=2.*B0
+      B0P=2.*B0P
+      CGAM1=SQRT(XL*XL-CK1SQ)
+      CGAM2=SQRT(XL*XL-CK2SQ)
+      IF (DREAL(CGAM1).EQ.0.) CGAM1=DCMPLX(0.D0,-ABS(DIMAG(CGAM1)))
+      IF (DREAL(CGAM2).EQ.0.) CGAM2=DCMPLX(0.D0,-ABS(DIMAG(CGAM2)))
+      GO TO 2
+C     HANKEL FUNCTION FORM
+1     CALL HANKEL (XL*RHO,B0,B0P)
+      COM=XL-CK1
+      CGAM1=SQRT(XL+CK1)*SQRT(COM)
+      IF (DREAL(COM).LT.0..AND.DIMAG(COM).GE.0.) CGAM1=-CGAM1
+      COM=XL-CK2
+      CGAM2=SQRT(XL+CK2)*SQRT(COM)
+      IF (DREAL(COM).LT.0..AND.DIMAG(COM).GE.0.) CGAM2=-CGAM2
+2     XLR=XL*DCONJG(XL)
+      IF (XLR.LT.TSMAG) GO TO 3
+      IF (DIMAG(XL).LT.0.) GO TO 4
+      XLR=DREAL(XL)
+      IF (XLR.LT.CK2) GO TO 5
+      IF (XLR.GT.CK1R) GO TO 4
+3     DGAM=CGAM2-CGAM1
+      GO TO 7
+4     SIGN=1.
+      GO TO 6
+5     SIGN=-1.
+6     DGAM=1./(XL*XL)
+      DGAM=SIGN*((CT3*DGAM+CT2)*DGAM+CT1)/XL
+7     DEN2=CKSM*DGAM/(CGAM2*(CK1SQ*CGAM2+CK2SQ*CGAM1))
+      DEN1=1./(CGAM1+CGAM2)-CKSM/CGAM2
+      COM=DXL*XL*EXP(-CGAM2*ZPH)
+      ANS(6)=COM*B0*DEN1/CK1
+      COM=COM*DEN2
+      IF (RHO.EQ.0.) GO TO 8
+      B0P=B0P/RHO
+      ANS(1)=-COM*XL*(B0P+B0*XL)
+      ANS(4)=COM*XL*B0P
+      GO TO 9
+8     ANS(1)=-COM*XL*XL*.5
+      ANS(4)=ANS(1)
+9     ANS(2)=COM*CGAM2*CGAM2*B0
+      ANS(3)=-ANS(4)*CGAM2*RHO
+      ANS(5)=COM*B0
+      RETURN
+      END
+
+C***********************************************************************
+Cav03 SUBROUTINE TEST (F1R,F2R,TR,F1I,F2I,TI,DMIN)
+C
+Cav03	Routine already available, note however the SAVE statement.
+C
+C***********************************************************************
+C
+C     TEST FOR CONVERGENCE IN NUMERICAL INTEGRATION
+C
+Cav03      IMPLICIT REAL*8(A-H,O-Z)
+Cav03      SAVE
+Cav03      DEN=ABS(F2R)
+Cav03      TR=ABS(F2I)
+Cav03      IF (DEN.LT.TR) DEN=TR
+Cav03      IF (DEN.LT.DMIN) DEN=DMIN
+Cav03      IF (DEN.LT.1.E-37) GO TO 1
+Cav03      TR=ABS((F1R-F2R)/DEN)
+Cav03      TI=ABS((F1I-F2I)/DEN)
+Cav03      RETURN
+Cav03
+Cav031     TR=0.
+Cav03      TI=0.
+Cav03      RETURN
+Cav03      END
+
+Cav03      SUBROUTINE SECOND (CPUSECD)
+C     Purpose:
+C     SECOND returns cpu time in seconds.  Must be customized!!!
+Cav03      REAL*8 CPUSECD
+Cav03      integer Iticks
+Cav03
+C--   Not customized:
+C       Cpusecd = 0.0            ! if we have no clock routine
+C--   MACINTOSH:
+C       CPUSECD= LONG(362)/60.0
+C--   Lahey fortran
+C        Call Timer(Iticks)
+Cav03        cpusecd = Iticks/100.d0
+Cav03      END
+
+Cav03 ################## END OF SOM2D INCLUDE ##########################
+
+C***********************************************************************
       SUBROUTINE ARC (ITG,NS,RADA,ANG1,ANG2,RAD)
+C***********************************************************************
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C
@@ -1140,7 +2038,7 @@ C
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C
@@ -1156,8 +2054,12 @@ C
      &CIR(MAXSEG),CII(MAXSEG),CUR(3*MAXSEG)
       COMMON /SEGJ/ AX(30),BX(30),CX(30),JCO(30),JSNO,ISCON(50),NSCON,IP
      1CON(10),NPCON
-      COMMON /VSORC/ VQD(30),VSANT(30),VQDS(30),IVQD(30),ISANT(30),IQDS(
-     130),NVQD,NSANT,NQDS
+
+Cav07 COMMON /VSORC/ VQD(30),VSANT(30),VQDS(30),IVQD(30),ISANT(30),IQDS(
+Cav07 130),NVQD,NSANT,NQDS
+      COMMON /VSORC/ VQD(nsmax),VSANT(nsmax),VQDS(nsmax),IVQD(nsmax),
+     &ISANT(nsmax),IQDS(nsmax),NVQD,NSANT,NQDS			! av07
+
       COMMON /ANGL/ SALP(MAXSEG)
       DIMENSION T1X(1), T1Y(1), T1Z(1), T2X(1), T2Y(1), T2Z(1)
       DIMENSION CURX(1), CCJX(2)
@@ -1240,7 +2142,7 @@ C
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C     CMNGF FILLS INTERACTION MATRICIES B, C, AND D FOR N.G.F. SOLUTION
@@ -1505,11 +2407,12 @@ C     FILL C(SW) AND C(SS)
       REWIND 15
       RETURN
       END
+
       SUBROUTINE CMSET (NROW,CM,RKHX,IEXKX)
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C
@@ -1622,7 +2525,7 @@ C     WRITE BLOCK FOR OUT-OF-CORE CASES.
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C     CMSS COMPUTES MATRIX ELEMENTS FOR SURFACE-SURFACE INTERACTIONS.
@@ -1707,7 +2610,7 @@ C     TRANSPOSED FILL
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C     COMPUTES MATRIX ELEMENTS FOR E ALONG WIRES DUE TO PATCH CURRENT
@@ -1853,7 +2756,7 @@ C     OTHER END INTEGRATE SINGULAR COMPONENT (9) OF SURFACE CURRENT ONLY
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C
@@ -1938,7 +2841,7 @@ C     TRANSPOSED FILL - C(WS) AND D(WS)PRIME (=CW)
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C
@@ -2051,7 +2954,7 @@ C     TRANS. FILL FOR C(WW) - TEST FOR ELEMENTS FOR D(WW)PRIME.  (=CW)
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C
@@ -2065,7 +2968,10 @@ C
      1CON(10),NPCON
       DIMENSION X2(1), Y2(1), Z2(1)
       EQUIVALENCE (X2,SI), (Y2,ALP), (Z2,BET)
-      DATA JMAX/30/,SMIN/1.D-3/,NSMAX/50/,NPMAX/10/
+
+Cav07 DATA JMAX/30/,SMIN/1.D-3/,NSMAX/50/,NPMAX/10/
+      DATA JMAX/30/,SMIN/1.D-3/,NPMAX/10/
+
       NSCON=0
       NPCON=0
       IF (IGND.EQ.0) GO TO 3
@@ -2354,10 +3260,13 @@ C
 62    FORMAT (' ERROR - NO. NEW SEGMENTS CONNECTED TO N.G.F. SEGMENTS ',
      &'OR PATCHES EXCEEDS LIMIT OF',I5)
       END
+
+
       SUBROUTINE COUPLE (CUR,WLAM)
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
+      INCLUDE 'NEC2DPAR.INC'					! av07
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C
@@ -2366,8 +3275,12 @@ C
       COMPLEX*16 Y11A,Y12A,CUR,Y11,Y12,Y22,YL,YIN,ZL,ZIN,RHO,VQD,VSANT
      1,VQDS
       COMMON/YPARM/Y11A(5),Y12A(20),NCOUP,ICOUP,NCTAG(5),NCSEG(5)
-      COMMON /VSORC/ VQD(30),VSANT(30),VQDS(30),IVQD(30),ISANT(30),IQDS(
-     130),NVQD,NSANT,NQDS
+
+Cav07 COMMON /VSORC/ VQD(30),VSANT(30),VQDS(30),IVQD(30),ISANT(30),IQDS(
+Cav07 130),NVQD,NSANT,NQDS
+      COMMON /VSORC/ VQD(nsmax),VSANT(nsmax),VQDS(nsmax),IVQD(nsmax),
+     &ISANT(nsmax),IQDS(nsmax),NVQD,NSANT,NQDS			! av07
+
       DIMENSION CUR(1)
       IF (NSANT.NE.1.OR.NVQD.NE.0) RETURN
       J=ISEGNO(NCTAG(ICOUP+1),NCSEG(ICOUP+1))
@@ -2432,7 +3345,7 @@ C
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C
@@ -3136,7 +4049,8 @@ C     EXTENDED THIN WIRE APPROXIMATION.
      1GZZ1))
       RETURN
       END
-      SUBROUTINE ERROR
+
+Cav03 SUBROUTINE ERROR
 C ***
 C     GET REASON FOR FILE ERROR (VAX ONLY).  ERROR SHOULD BE REDUCED TO 
 C     "RETURN END" FOR MACINTOSH.
@@ -3149,13 +4063,14 @@ C      CALL STR$UPCASE(MSG,MSG)
 C      IND=INDEX(MSG,',')
 C      TYPE 1,MSG(IND+2:MSGLEN)
 C1     FORMAT(//,'  ****  ERROR  ****   ',//,5X,A,//)
-      RETURN
-      END
+Cav03 RETURN
+Cav03 END
+
       SUBROUTINE ETMNS (P1,P2,P3,P4,P5,P6,IPR,E)
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C
@@ -3169,8 +4084,12 @@ C
      &ALP(MAXSEG),BET(MAXSEG),WLAM,ICON1(2*MAXSEG),ICON2(2*MAXSEG),
      &ITAG(2*MAXSEG),ICONX(MAXSEG),LD,N1,N2,N,NP,M1,M2,M,MP,IPSYM
       COMMON /ANGL/ SALP(MAXSEG)
-      COMMON /VSORC/ VQD(30),VSANT(30),VQDS(30),IVQD(30),ISANT(30),IQDS(
-     130),NVQD,NSANT,NQDS
+
+Cav07 COMMON /VSORC/ VQD(30),VSANT(30),VQDS(30),IVQD(30),ISANT(30),IQDS(
+Cav07 130),NVQD,NSANT,NQDS
+      COMMON /VSORC/ VQD(nsmax),VSANT(nsmax),VQDS(nsmax),IVQD(nsmax),
+     &ISANT(nsmax),IQDS(nsmax),NVQD,NSANT,NQDS			! av07
+
       COMMON /GND/ZRATI,ZRATI2,FRATI,T1,T2,CL,CH,SCRWL,SCRWR,NRADL,
      &KSYMP,IFAR,IPERF
       DIMENSION CAB(1), SAB(1), E(2*MAXSEG)
@@ -3513,9 +4432,9 @@ C
       IXBP=IXBLK1+1
       DO 1 IXBLK2=IXBP,NBLSYM
       CALL BLCKIN (A,IFILE3,I3,I4,1,18)
-      CALL SECONDS (T1)
+      CALL SECOND (T1)
       CALL LFACTR (A,NROW,IXBLK1,IXBLK2,IP(KA))
-      CALL SECONDS (T2)
+      CALL SECOND (T2)
       TIME=TIME+T2-T1
       IF (IXBLK2.EQ.IXBP) CALL BLCKOT (A,IU2,I1,I2,1,19)
       IF (IXBLK1.EQ.NBM.AND.IXBLK2.EQ.NBLSYM) IFILE4=IU2
@@ -3541,7 +4460,7 @@ C
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C
@@ -3566,10 +4485,10 @@ C
 11       CONTINUE
 12    CONTINUE
       IFLG=0
+      DO 9 R=1,N
 C
 C     STEP 1
 C
-      DO 9 R=1,N
       DO 1 K=1,N
       D(K)=A(K,R)
 1     CONTINUE
@@ -3946,7 +4865,7 @@ C
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C
@@ -4162,7 +5081,7 @@ C
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C     CALCULATES THE XYZ COMPONENTS OF THE ELECTRIC FIELD DUE TO
@@ -4220,7 +5139,7 @@ C
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       PARAMETER (IRESRV=MAXMAT**2)
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
@@ -4383,7 +5302,7 @@ C
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C
@@ -4536,7 +5455,7 @@ C
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       PARAMETER (IRESRV=MAXMAT**2)
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
@@ -4565,7 +5484,9 @@ C*** ERROR CORRECTED 11/20/89 *******************************
       EQUIVALENCE (T2X,ICON1),(T2Y,ICON2),(T2Z,ITAG)
 C***
       DATA IGFL/20/
-      OPEN(UNIT=IGFL,FILE='NGF2D.NEC',FORM='UNFORMATTED',STATUS='NEW')
+Cav04 OPEN(UNIT=IGFL,FILE='NGF2D.NEC',FORM='UNFORMATTED',STATUS='NEW')
+      OPEN(UNIT=IGFL,FILE='NGF2D.NEC',
+     &FORM='UNFORMATTED',STATUS='UNKNOWN')
       NEQ=N+2*M
       NPEQ=NP+2*MP
       NOP=NEQ/NPEQ
@@ -4656,6 +5577,7 @@ C     INTEGRAND FOR H FIELD OF A WIRE
       HI=CKR*RR2-SKR*RR3
       RETURN
       END
+
       SUBROUTINE GWAVE (ERV,EZV,ERH,EZH,EPH)
 C ***
 C     DOUBLE PRECISION 6/4/85
@@ -4668,12 +5590,14 @@ C     CURRENT ELEMENT OVER A GROUND PLANE USING FORMULAS OF K.A. NORTON
 C     (PROC. IRE, SEPT., 1937, PP.1203,1236.)
 C
       COMPLEX*16 FJ,TPJ,U2,U,RK1,RK2,T1,T2,T3,T4,P1,RV,OMR,W,F,Q1,RH,V,G
-     1,XR1,XR2,X1,X2,X3,X4,X5,X6,X7,EZV,ERV,EZH,ERH,EPH,XX1,XX2,ECON,
-     2FBAR
+     -,XR1,XR2,X1,X2,X3,X4,X5,X6,X7,EZV,ERV,EZH,ERH,EPH,XX1,XX2,ECON,
+     -FBAR
+
       COMMON /GWAV/ U,U2,XX1,XX2,R1,R2,ZMH,ZPH
       DIMENSION FJX(2), TPJX(2), ECONX(2)
       EQUIVALENCE (FJ,FJX), (TPJ,TPJX), (ECON,ECONX)
-      DATA PI/3.141592654D+0/,FJX/0.,1./,TPJX/0.,6.283185308D+0/
+Cav01 DATA PI/3.141592654D+0/,FJX/0.,1./,TPJX/0.,6.283185308D+0/
+	DATA FJX/0.,1./,TPJX/0.,6.283185308D+0/
       DATA ECONX/0.,-188.367/
       SPPP=ZMH/R1
       SPPP2=SPPP*SPPP
@@ -4800,7 +5724,7 @@ C     SEGMENT END CONTRIBUTIONS FOR EXT. THIN WIRE APPROX.
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C     SUBROUTINE HELIX GENERATES SEGMENT GEOMETRY DATA FOR A HELIX OF NS
@@ -5227,7 +6151,6 @@ C
 C     INTRP USES BIVARIATE CUBIC INTERPOLATION TO OBTAIN THE VALUES OF
 C     4 FUNCTIONS AT THE POINT (X,Y).
 C
-      SAVE
       COMPLEX*16 F1,F2,F3,F4,A,B,C,D,FX1,FX2,FX3,FX4,P1,P2,P3,P4,A11,A12
      1,A13,A14,A21,A22,A23,A24,A31,A32,A33,A34,A41,A42,A43,A44,B11,B12
      2,B13,B14,B21,B22,B23,B24,B31,B32,B33,B34,B41,B42,B43,B44,C11,C12
@@ -5237,9 +6160,8 @@ C
       COMMON /GGRID/ AR1(11,10,4),AR2(17,5,4),AR3(9,8,4),EPSCF,DXA(3),DY
      1A(3),XSA(3),YSA(3),NXA(3),NYA(3)
       DIMENSION NDA(3), NDPA(3)
-      DIMENSION A(4,4), B(4,4), C(4,4), D(4,4)
-      DIMENSION ARL1(1), ARL2(1), ARL3(1)
-      EQUIVALENCE (ARL1,AR1), (ARL2,AR2), (ARL3,AR3)
+      DIMENSION A(4,4), B(4,4), C(4,4), D(4,4), ARL1(1), ARL2(1), ARL3(1
+     1)
       EQUIVALENCE (A(1,1),A11), (A(1,2),A12), (A(1,3),A13), (A(1,4),A14)
       EQUIVALENCE (A(2,1),A21), (A(2,2),A22), (A(2,3),A23), (A(2,4),A24)
       EQUIVALENCE (A(3,1),A31), (A(3,2),A32), (A(3,3),A33), (A(3,4),A34)
@@ -5256,7 +6178,8 @@ C
       EQUIVALENCE (D(2,1),D21), (D(2,2),D22), (D(2,3),D23), (D(2,4),D24)
       EQUIVALENCE (D(3,1),D31), (D(3,2),D32), (D(3,3),D33), (D(3,4),D34)
       EQUIVALENCE (D(4,1),D41), (D(4,2),D42), (D(4,3),D43), (D(4,4),D44)
-      EQUIVALENCE (XS2,XSA(2)), (YS3,YSA(3))
+      EQUIVALENCE (ARL1,AR1), (ARL2,AR2), (ARL3,AR3), (XS2,XSA(2)), (YS3
+     1,YSA(3))
       DATA IXS,IYS,IGRS/-10,-10,-10/,DX,DY,XS,YS/1.,1.,0.,0./
       DATA NDA/11,17,9/,NDPA/110,85,72/,IXEG,IYEG/0,0/
       IF (X.LT.XS.OR.Y.LT.YS) GO TO 1
@@ -5488,7 +6411,7 @@ C
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C
@@ -5524,7 +6447,7 @@ C
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C
@@ -5631,11 +6554,12 @@ C
 C
 17    FORMAT (1H ,6HPIVOT(,I3,2H)=,1P,E16.8)
       END
+
       SUBROUTINE LOAD (LDTYP,LDTAG,LDTAGF,LDTAGT,ZLR,ZLI,ZLC)
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C
@@ -5777,7 +6701,7 @@ C
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C
@@ -5916,7 +6840,7 @@ C     SKIP NB1 LOGICAL RECORDS FORWARD
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C
@@ -6024,7 +6948,7 @@ C
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C
@@ -6145,11 +7069,12 @@ C
 21    EZ=EZ+ACX*EZK+BCX*EZS
       RETURN
       END
+
       SUBROUTINE NETWK (CM,CMB,CMC,CMD,IP,EINC)
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C
@@ -6159,20 +7084,40 @@ C     PRESENT.
 C
       COMPLEX*16 CMN,RHNT,YMIT,RHS,ZPED,EINC,VSANT,VLT,CUR,VSRC,RHNX
      1,VQD,VQDS,CUX,CM,CMB,CMC,CMD
+
       COMMON /DATA/ X(MAXSEG),Y(MAXSEG),Z(MAXSEG),SI(MAXSEG),BI(MAXSEG),
      &ALP(MAXSEG),BET(MAXSEG),WLAM,ICON1(2*MAXSEG),ICON2(2*MAXSEG),
      &ITAG(2*MAXSEG),ICONX(MAXSEG),LD,N1,N2,N,NP,M1,M2,M,MP,IPSYM
+
       COMMON /CRNT/ AIR(MAXSEG),AII(MAXSEG),BIR(MAXSEG),BII(MAXSEG),
      &CIR(MAXSEG),CII(MAXSEG),CUR(3*MAXSEG)
-      COMMON /VSORC/ VQD(30),VSANT(30),VQDS(30),IVQD(30),ISANT(30),IQDS(
-     130),NVQD,NSANT,NQDS
-      COMMON/NETCX/ZPED,PIN,PNLS,X11R(30),X11I(30),X12R(30),X12I(30),
-     &X22R(30),X22I(30),NTYP(30),ISEG1(30),ISEG2(30),NEQ,NPEQ,NEQ2,
-     &NONET,NTSOL,NPRINT,MASYM
+
+Cav07 COMMON /VSORC/ VQD(30),VSANT(30),VQDS(30),IVQD(30),ISANT(30),IQDS(
+Cav07 130),NVQD,NSANT,NQDS
+      COMMON /VSORC/ VQD(nsmax),VSANT(nsmax),VQDS(nsmax),IVQD(nsmax),
+     &ISANT(nsmax),IQDS(nsmax),NVQD,NSANT,NQDS			! av07
+
+Cav06 COMMON/NETCX/ZPED,PIN,PNLS,X11R(30),X11I(30),X12R(30),X12I(30),
+C     &X22R(30),X22I(30),NTYP(30),ISEG1(30),ISEG2(30),NEQ,NPEQ,NEQ2,
+Cav06 &NONET,NTSOL,NPRINT,MASYM
+
+      COMMON/NETCX/ZPED,PIN,PNLS,X11R(netmx),X11I(netmx),X12R(netmx),
+     &X12I(netmx),X22R(netmx),X22I(netmx),NTYP(netmx),ISEG1(netmx),
+     &ISEG2(netmx),NEQ,NPEQ,NEQ2,NONET,NTSOL,NPRINT,MASYM	! av06
+
       DIMENSION EINC(1), IP(1),CM(1),CMB(1),CMC(1),CMD(1)
-      DIMENSION CMN(30,30), RHNT(30), IPNT(30), NTEQA(30), NTSCA(30),
-     &RHS(3*MAXSEG), VSRC(30), RHNX(30)
-      DATA NDIMN,NDIMNP/30,31/,TP/6.283185308D+0/
+
+Cav07 DIMENSION CMN(30,30), RHNT(30), IPNT(30), NTEQA(30), NTSCA(30),
+Cav07 &RHS(3*MAXSEG), VSRC(30), RHNX(30)
+
+Cav08	Keep VSRC dimension to 30 (for now) as it's use is uncertain.
+
+      DIMENSION CMN(netmx,netmx), RHNT(netmx), IPNT(netmx), 
+     &NTEQA(netmx), NTSCA(netmx), RHS(3*MAXSEG), VSRC(30), RHNX(netmx)
+
+Cav06 DATA NDIMN,NDIMNP/30,31/,TP/6.283185308D+0/
+      DATA NDIMN,NDIMNP/netmx,netmx+1/,TP/6.283185308D+0/	! av06
+
       NEQZ2=NEQ2
       IF(NEQZ2.EQ.0)NEQZ2=1
       PIN=0.
@@ -6207,7 +7152,11 @@ C
 7     IROW1=IROW1+1
       IPNT(IROW1)=NSEG1
 8     CONTINUE
-9     IF (IROW1.LT.NDIMNP) GO TO 10
+
+Cav09
+C9	print *,'irow1=',irow1,'  ndimnp=',ndimnp
+
+9      IF (IROW1.LT.NDIMNP) GO TO 10
       WRITE(3,59)
       STOP
 10    IF (IROW1.LT.2) GO TO 14
@@ -6482,7 +7431,7 @@ C
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C     COMPUTE NEAR E OR H FIELDS OVER A RANGE OF POINTS
@@ -6581,7 +7530,7 @@ C
 C     NHFLD COMPUTES THE NEAR FIELD AT SPECIFIED POINTS IN SPACE AFTER
 C     THE STRUCTURE CURRENTS HAVE BEEN COMPUTED.
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
       COMPLEX*16 HX,HY,HZ,CUR,ACX,BCX,CCX,EXK,EYK,EZK,EXS,EYS,EZS,EXC,
      &EYC,EZC
@@ -6690,7 +7639,7 @@ C
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C     PATCH GENERATES AND MODIFIES PATCH GEOMETRY DATA
@@ -7016,7 +7965,7 @@ C
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C     FILL INCIDENT FIELD ARRAY FOR CHARGE DISCONTINUITY VOLTAGE SOURCE
@@ -7025,8 +7974,12 @@ C     FILL INCIDENT FIELD ARRAY FOR CHARGE DISCONTINUITY VOLTAGE SOURCE
       COMMON /DATA/ X(MAXSEG),Y(MAXSEG),Z(MAXSEG),SI(MAXSEG),BI(MAXSEG),
      &ALP(MAXSEG),BET(MAXSEG),WLAM,ICON1(2*MAXSEG),ICON2(2*MAXSEG),
      &ITAG(2*MAXSEG),ICONX(MAXSEG),LD,N1,N2,N,NP,M1,M2,M,MP,IPSYM
-      COMMON /VSORC/ VQD(30),VSANT(30),VQDS(30),IVQD(30),ISANT(30),IQDS(
-     130),NVQD,NSANT,NQDS
+
+Cav07 COMMON /VSORC/ VQD(30),VSANT(30),VQDS(30),IVQD(30),ISANT(30),IQDS(
+Cav07 130),NVQD,NSANT,NQDS
+      COMMON /VSORC/ VQD(nsmax),VSANT(nsmax),VQDS(nsmax),IVQD(nsmax),
+     &ISANT(nsmax),IQDS(nsmax),NVQD,NSANT,NQDS			! av07
+
       COMMON /SEGJ/ AX(30),BX(30),CX(30),JCO(30),JSNO,ISCON(50),NSCON,IP
      1CON(10),NPCON
       COMMON /DATAJ/ S,B,XJ,YJ,ZJ,CABJ,SABJ,SALPJ,EXK,EYK,EZK,EXS,EYS,
@@ -7143,7 +8096,7 @@ C     FILL INCIDENT FIELD ARRAY FOR CHARGE DISCONTINUITY VOLTAGE SOURCE
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       PARAMETER(NORMAX=4*MAXSEG)
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
@@ -7680,7 +8633,7 @@ C     TO BLOCKS OF COLUMNS ON TAPE16
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C
@@ -8010,7 +8963,7 @@ C
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C     COMPUTE COMPONENT OF BASIS FUNCTION I ON SEGMENT IS.
@@ -8141,22 +9094,24 @@ C     COMPUTE COMPONENT OF BASIS FUNCTION I ON SEGMENT IS.
 C
 25    FORMAT (43H SBF - SEGMENT CONNECTION ERROR FOR SEGMENT,I5)
       END
-      SUBROUTINE SECONDS (CPUSECD)
+
+Cav02 SUBROUTINE SECOND (CPUSECD)
 C
 C     Purpose:
 C     SECOND returns cpu time in seconds.  Must be customized!!!
 C
 C     VAX or other (modify subroutine stopwtch):
 C
-      REAL*8 CPUSECD
-      CALL STOPWTCH(CPUSECS,WALLTOT,CPUSPLT,WALLSPLT)
-      CPUSECD=60.*CPUSECS
+Cav02 REAL*8 CPUSECD
+Cav02 CALL STOPWTCH(CPUSECS,WALLTOT,CPUSPLT,WALLSPLT)
+Cav02 CPUSECD=60.*CPUSECS
 C     MACINTOSH:
 C      CPUSECD= LONG(362)/60.0
-      RETURN
-      END
+Cav02 RETURN
+Cav02 END
+
 c **********************************************************************
-        subroutine stopwtch(cputot,walltot,cpusplt,wallsplt)
+Cav03   subroutine stopwtch(cputot,walltot,cpusplt,wallsplt)
 c
 c       This routine operates as a stopwatch.
 c       When first called, the routine initializes the clock.
@@ -8192,14 +9147,14 @@ c ----------------------------------------------------------------------
 c
 c parameter list
 c
-        real cputot,walltot,cpusplt,wallsplt
+Cav03        real cputot,walltot,cpusplt,wallsplt
 c
 c locals (non sysdep)
 c
-        logical initiz
-        integer wallinit,walllast,wallnow
-        real cpuinit,cpulast,cpunow
-        save initiz,cpuinit,cpulast,wallinit,walllast
+Cav03        logical initiz
+Cav03        integer wallinit,walllast,wallnow
+Cav03        real cpuinit,cpulast,cpunow
+Cav03        save initiz,cpuinit,cpulast,wallinit,walllast
 c
 c locals (sysdep)
 c
@@ -8210,9 +9165,9 @@ C        real rwall
 C        dimension iwall(2)
 C#endif
 C#ifdef SUN4TIMER
-        integer time
-        real tarray
-        dimension tarray(2)
+Cav03        integer time
+Cav03        real tarray
+Cav03        dimension tarray(2)
 C#endif
 C#ifdef CONVEX
 C        real time, secnds, tarray
@@ -8237,22 +9192,22 @@ C#endif
 c
 c data initialization
 c
-        data initiz/.false./
+Cav03        data initiz/.false./
 c
 c ----------------------------------------------------------------------
 c
-        if (.not. initiz) then
+Cav03        if (.not. initiz) then
 c
 c ...      set the flag showing that the clock has been initialized
 c
-           initiz = .true.
+Cav03           initiz = .true.
 c
 c ...      set the initial times to default value of zero.  These may
 c          be changed, depending on how an individual machine handles
 c          its timer.
 c
-           cpuinit  = 0.0
-           wallinit = 0
+Cav03           cpuinit  = 0.0
+Cav03           wallinit = 0
 c
 c ...      initialize the timer (may not be necessary on all machines)
 c
@@ -8267,8 +9222,8 @@ c          called.  Hence, define initial CPU time here.
 c          Wall clock timer counts in seconds from 1-Jan-70  Thus,
 c          initial wall clock time is non-zero.  It is obtained here.
 c 
-           cpuinit  = etime(tarray)
-           wallinit = time()
+Cav03           cpuinit  = etime(tarray)
+Cav03           wallinit = time()
 C#endif
 c
 C#ifdef CONVEX
@@ -8313,10 +9268,10 @@ c
 c ...      since this is the first call to this routine,
 c          initialize the previous call times to the initial time.
 c
-           cpulast  =  cpuinit
-           walllast = wallinit
+Cav03           cpulast  =  cpuinit
+Cav03           walllast = wallinit
 c
-        end if
+Cav03        end if
 c
 c ...   Find the current cpu and wall times
 c
@@ -8356,8 +9311,8 @@ c                                   = user time + system time
 c       I am uncertain whether to let cpunow = return value or
 c       else tarray(1).
 c
-        cpunow  = etime(tarray)
-        wallnow = time()
+Cav03        cpunow  = etime(tarray)
+Cav03        wallnow = time()
 C#endif
 c
 C#ifdef CONVEX
@@ -8406,19 +9361,20 @@ c
 c ...   calculate elapsed and split cpu and wall clock times,
 c       convert to minutes on output.
 c
-        cputot   = (cpunow  - cpuinit )/60.0
-        walltot  = float(wallnow - wallinit)/60.0
-        cpusplt  = (cpunow  - cpulast )/60.0
-        wallsplt = float(wallnow - walllast)/60.0
+Cav03        cputot   = (cpunow  - cpuinit )/60.0
+Cav03        walltot  = float(wallnow - wallinit)/60.0
+Cav03        cpusplt  = (cpunow  - cpulast )/60.0
+Cav03        wallsplt = float(wallnow - walllast)/60.0
 c
 c ...   save "now" times in "last" times
 c
-        cpulast  = cpunow
-        walllast = wallnow
+Cav03        cpulast  = cpunow
+Cav03        walllast = wallnow
 c
-        return
+Cav03        return
 c **********************************************************************
-        end
+Cav03        end
+
       SUBROUTINE SFLDS (T,E)
 C ***
 C     DOUBLE PRECISION 6/4/85
@@ -8541,7 +9497,7 @@ C     X,Y,Z FIELDS FOR COSINE CURRENT
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C     SOLVE FOR CURRENT IN N.G.F. PROCEDURE
@@ -8662,7 +9618,7 @@ C     REORDER CURRENT ARRAY
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C
@@ -8709,7 +9665,7 @@ C
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C
@@ -8831,7 +9787,7 @@ C
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C     COMPUTE BASIS FUNCTION I
@@ -8967,6 +9923,7 @@ C     COMPUTE BASIS FUNCTION I
 C
 29    FORMAT (43H TBF - SEGMENT CONNECTION ERROR FOR SEGMENT,I5)
       END
+
       SUBROUTINE TEST (F1R,F2R,TR,F1I,F2I,TI,DMIN)
 C ***
 C     DOUBLE PRECISION 6/4/85
@@ -8984,15 +9941,17 @@ C
       TR=ABS((F1R-F2R)/DEN)
       TI=ABS((F1I-F2I)/DEN)
       RETURN
+
 1     TR=0.
       TI=0.
       RETURN
       END
+
       SUBROUTINE TRIO (J)
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C     COMPUTE THE COMPONENTS OF ALL BASIS FUNCTIONS ON SEGMENT J
@@ -9126,7 +10085,7 @@ C     CONST=ETA/(8.*PI**2)
 C ***
 C     DOUBLE PRECISION 6/4/85
 C
-      PARAMETER (MAXSEG=1500, MAXMAT=1500)
+      INCLUDE 'NEC2DPAR.INC'
       IMPLICIT REAL*8(A-H,O-Z)
 C ***
 C
@@ -9243,7 +10202,8 @@ C
 3     ZINT=FJ*SQRT(CMOTP/SIGL)*BR1/ROLAM
       RETURN
       END
-      logical*4 function GetPut(what,where,message,file,volume,nt,types)
+
+Cav03 logical*4 function GetPut(what,where,message,file,volume,nt,types)
 C
 C      implicit none
 C
@@ -9296,7 +10256,7 @@ C      equivalence (reply(1),good)
 C      equivalence (reply(7),vrefnum)
 C      equivalence (reply(11),fname)
 C
-      GetPut = .false.
+Cav03  GetPut = .false.
 C      volume = 0
 C      good = .true.
 C      if (what .eq. 0) then
@@ -9388,661 +10348,5 @@ C        GetPut = .true.
 C        volume = vrefnum
 C      endif
 C
-      return
-      end
-C     Last change:  PGM   8 Nov 2000    1:04 pm
-C     PROGRAM SOMNEC(INPUT,OUTPUT,TAPE21)
-C
-C     PROGRAM TO GENERATE NEC INTERPOLATION GRIDS FOR FIELDS DUE TO
-C     GROUND.  FIELD COMPONENTS ARE COMPUTED BY NUMERICAL EVALUATION
-C     OF MODIFIED SOMMERFELD INTEGRALS.
-C
-C     SOMNEC2D IS A DOUBLE PRECISION VERSION OF SOMNEC FOR USE WITH
-C     NEC2D.  AN ALTERNATE VERSION (SOMNEC2SD) IS ALSO PROVIDED IN WHICH
-C     COMPUTATION IS IN SINGLE PRECISION BUT THE OUTPUT FILE IS WRITTEN
-C     IN DOUBLE PRECISION FOR USE WITH NEC2D.  SOMNEC2SD RUNS ABOUT TWIC
-C     AS FAST AS THE FULL DOUBLE PRECISION SOMNEC2D.  THE DIFFERENCE
-C     BETWEEN NEC2D RESULTS USING A FOR021 FILE FROM THIS CODE RATHER
-C     THAN FROM SOMNEC2SD WAS INSIGNFICANT IN THE CASES TESTED.
-C
-C     Changes made by J Bergervoet, 31-5-95:
-C         Parameter 0. --> 0.D0 in calling of routine TEST
-C         Status of output files set to 'UNKNOWN'
-C***
-      SUBROUTINE SOMNEC(EPR, SIG, FMHZ)
-      IMPLICIT REAL*8(A-H,O-Z)
-C***
-      COMPLEX*16 CK1,CK1SQ,ERV,EZV,ERH,EPH,CKSM,CT1,CT2,CT3,CL1,CL2,CON,
-     1AR1,AR2,AR3,EPSCF
-      COMMON /EVLCOM/ CKSM,CT1,CT2,CT3,CK1,CK1SQ,CK2,CK2SQ,TKMAG,TSMAG,C
-     1K1R,ZPH,RHO,JH
-      COMMON /GGRID/ AR1(11,10,4),AR2(17,5,4),AR3(9,8,4),EPSCF,DXA(3),DY
-     1A(3),XSA(3),YSA(3),NXA(3),NYA(3)
-      DATA NXA/11,17,9/,NYA/10,5,8/,XSA/0.,.2,.2/,YSA/0.,0.,.3490658504/
-      DATA DXA/.02,.05,.1/,DYA/.1745329252,.0872664626,.1745329252/
-      CHARACTER*3  LCOMP(4)
-      DATA LCOMP/'ERV','EZV','ERH','EPH'/
-C***
-      IF (SIG.LT.0.) GO TO 1
-      WLAM=299.8/FMHZ
-      EPSCF=DCMPLX(EPR,-SIG*WLAM*59.96)
-      GO TO 2
-1     EPSCF=DCMPLX(EPR,SIG)
-2     CALL SECONDS (TST)
-      CK2=6.283185308
-      CK2SQ=CK2*CK2
-C
-C     SOMMERFELD INTEGRAL EVALUATION USES EXP(-JWT), NEC USES EXP(+JWT),
-C     HENCE NEED CONJG(EPSCF).  CONJUGATE OF FIELDS OCCURS IN SUBROUTINE
-C     EVLUA.
-C
-      CK1SQ=CK2SQ*DCONJG(EPSCF)
-      CK1=SQRT(CK1SQ)
-      CK1R=DREAL(CK1)
-      TKMAG=100.*ABS(CK1)
-      TSMAG=100.*CK1*DCONJG(CK1)
-      CKSM=CK2SQ/(CK1SQ+CK2SQ)
-      CT1=.5*(CK1SQ-CK2SQ)
-      ERV=CK1SQ*CK1SQ
-      EZV=CK2SQ*CK2SQ
-      CT2=.125*(ERV-EZV)
-      ERV=ERV*CK1SQ
-      EZV=EZV*CK2SQ
-      CT3=.0625*(ERV-EZV)
-C
-C     LOOP OVER 3 GRID REGIONS
-C
-      DO 6 K=1,3
-      NR=NXA(K)
-      NTH=NYA(K)
-      DR=DXA(K)
-      DTH=DYA(K)
-      R=XSA(K)-DR
-      IRS=1
-      IF (K.EQ.1) R=XSA(K)
-      IF (K.EQ.1) IRS=2
-C
-C     LOOP OVER R.  (R=SQRT(RHO**2 + (Z+H)**2))
-C
-      DO 6 IR=IRS,NR
-      R=R+DR
-      THET=YSA(K)-DTH
-C
-C     LOOP OVER THETA.  (THETA=ATAN((Z+H)/RHO))
-C
-      DO 6 ITH=1,NTH
-      THET=THET+DTH
-      RHO=R*COS(THET)
-      ZPH=R*SIN(THET)
-      IF (RHO.LT.1.E-7) RHO=1.E-8
-      IF (ZPH.LT.1.E-7) ZPH=0.
-      CALL EVLUA (ERV,EZV,ERH,EPH)
-      RK=CK2*R
-      CON=-(0.,4.77147)*R/DCMPLX(COS(RK),-SIN(RK))
-      GO TO (3,4,5), K
-3     AR1(IR,ITH,1)=ERV*CON
-      AR1(IR,ITH,2)=EZV*CON
-      AR1(IR,ITH,3)=ERH*CON
-      AR1(IR,ITH,4)=EPH*CON
-      GO TO 6
-4     AR2(IR,ITH,1)=ERV*CON
-      AR2(IR,ITH,2)=EZV*CON
-      AR2(IR,ITH,3)=ERH*CON
-      AR2(IR,ITH,4)=EPH*CON
-      GO TO 6
-5     AR3(IR,ITH,1)=ERV*CON
-      AR3(IR,ITH,2)=EZV*CON
-      AR3(IR,ITH,3)=ERH*CON
-      AR3(IR,ITH,4)=EPH*CON
-6     CONTINUE
-C
-C     FILL GRID 1 FOR R EQUAL TO ZERO.
-C
-      CL2=-(0.,188.370)*(EPSCF-1.)/(EPSCF+1.)
-      CL1=CL2/(EPSCF+1.)
-      EZV=EPSCF*CL1
-      THET=-DTH
-      NTH=NYA(1)
-      DO 9 ITH=1,NTH
-      THET=THET+DTH
-      IF (ITH.EQ.NTH) GO TO 7
-      TFAC2=COS(THET)
-      TFAC1=(1.-SIN(THET))/TFAC2
-      TFAC2=TFAC1/TFAC2
-      ERV=EPSCF*CL1*TFAC1
-      ERH=CL1*(TFAC2-1.)+CL2
-      EPH=CL1*TFAC2-CL2
-      GO TO 8
-7     ERV=0.
-      ERH=CL2-.5*CL1
-      EPH=-ERH
-8     AR1(1,ITH,1)=ERV
-      AR1(1,ITH,2)=EZV
-      AR1(1,ITH,3)=ERH
-9     AR1(1,ITH,4)=EPH
-      CALL SECONDS (TIM)
-14    TIM=TIM-TST
-      WRITE(3,16) TIM
-16    FORMAT (40X,12HSOMNEC TIME=,E12.3,8H SECONDS)
-      RETURN
-C
-      END
-      SUBROUTINE BESSEL (Z,J0,J0P)
-C
-C     BESSEL EVALUATES THE ZERO-ORDER BESSEL FUNCTION AND ITS DERIVATIVE
-C     FOR COMPLEX ARGUMENT Z.
-C
-      IMPLICIT REAL*8(A-H,O-Z)
-      SAVE
-      COMPLEX*16 J0,J0P,P0Z,P1Z,Q0Z,Q1Z,Z,ZI,ZI2,ZK,FJ,CZ,SZ,J0X,J0PX
-      DIMENSION M(101), A1(25), A2(25), FJX(2)
-      EQUIVALENCE (FJ,FJX)
-      DATA PI,C3,P10,P20,Q10,Q20/3.141592654,.7978845608,.0703125,.11215
-     120996,.125,.0732421875/
-      DATA P11,P21,Q11,Q21/.1171875,.1441955566,.375,.1025390625/
-      DATA POF,INIT/.7853981635,0/,FJX/0.,1./
-      IF (INIT.EQ.0) GO TO 5
-1     ZMS=Z*DCONJG(Z)
-      IF (ZMS.GT.1.E-12) GO TO 2
-      J0=(1.,0.)
-      J0P=-.5*Z
-      RETURN
-2     IB=0
-      IF (ZMS.GT.37.21) GO TO 4
-      IF (ZMS.GT.36.) IB=1
-C     SERIES EXPANSION
-      IZ=1.+ZMS
-      MIZ=M(IZ)
-      J0=(1.,0.)
-      J0P=J0
-      ZK=J0
-      ZI=Z*Z
-      DO 3 K=1,MIZ
-      ZK=ZK*A1(K)*ZI
-      J0=J0+ZK
-3     J0P=J0P+A2(K)*ZK
-      J0P=-.5*Z*J0P
-      IF (IB.EQ.0) RETURN
-      J0X=J0
-      J0PX=J0P
-C     ASYMPTOTIC EXPANSION
-4     ZI=1./Z
-      ZI2=ZI*ZI
-      P0Z=1.+(P20*ZI2-P10)*ZI2
-      P1Z=1.+(P11-P21*ZI2)*ZI2
-      Q0Z=(Q20*ZI2-Q10)*ZI
-      Q1Z=(Q11-Q21*ZI2)*ZI
-      ZK=EXP(FJ*(Z-POF))
-      ZI2=1./ZK
-      CZ=.5*(ZK+ZI2)
-      SZ=FJ*.5*(ZI2-ZK)
-      ZK=C3*SQRT(ZI)
-      J0=ZK*(P0Z*CZ-Q0Z*SZ)
-      J0P=-ZK*(P1Z*SZ+Q1Z*CZ)
-      IF (IB.EQ.0) RETURN
-      ZMS=COS((SQRT(ZMS)-6.)*31.41592654)
-      J0=.5*(J0X*(1.+ZMS)+J0*(1.-ZMS))
-      J0P=.5*(J0PX*(1.+ZMS)+J0P*(1.-ZMS))
-      RETURN
-C     INITIALIZATION OF CONSTANTS
-5     DO 6 K=1,25
-      A1(K)=-.25D0/(K*K)
-6     A2(K)=1.D0/(K+1.D0)
-      DO 8 I=1,101
-      TEST=1.D0
-      DO 7 K=1,24
-      INIT=K
-      TEST=-TEST*I*A1(K)
-      IF (TEST.LT.1.D-6) GO TO 8
-7     CONTINUE
-8     M(I)=INIT
-      GO TO 1
-      END
-      SUBROUTINE EVLUA (ERV,EZV,ERH,EPH)
-C
-C     EVALUA CONTROLS THE INTEGRATION CONTOUR IN THE COMPLEX LAMBDA
-C     PLANE FOR EVALUATION OF THE SOMMERFELD INTEGRALS.
-C
-      IMPLICIT REAL*8(A-H,O-Z)
-      SAVE
-      COMPLEX*16 ERV,EZV,ERH,EPH,A,B,CK1,CK1SQ,BK,SUM,DELTA,ANS,DELTA2,
-     1CP1,CP2,CP3,CKSM,CT1,CT2,CT3
-      COMMON /CNTOUR/ A,B
-      COMMON /EVLCOM/ CKSM,CT1,CT2,CT3,CK1,CK1SQ,CK2,CK2SQ,TKMAG,TSMAG,C
-     1K1R,ZPH,RHO,JH
-      DIMENSION SUM(6), ANS(6)
-      DATA PTP/.6283185308/
-      DEL=ZPH
-      IF (RHO.GT.DEL) DEL=RHO
-      IF (ZPH.LT.2.*RHO) GO TO 4
-C
-C     BESSEL FUNCTION FORM OF SOMMERFELD INTEGRALS
-C
-      JH=0
-      A=(0.,0.)
-      DEL=1./DEL
-      IF (DEL.LE.TKMAG) GO TO 2
-      B=DCMPLX(.1*TKMAG,-.1*TKMAG)
-      CALL ROM1 (6,SUM,2)
-      A=B
-      B=DCMPLX(DEL,-DEL)
-      CALL ROM1 (6,ANS,2)
-      DO 1 I=1,6
-1     SUM(I)=SUM(I)+ANS(I)
-      GO TO 3
-2     B=DCMPLX(DEL,-DEL)
-      CALL ROM1 (6,SUM,2)
-3     DELTA=PTP*DEL
-      CALL GSHANK (B,DELTA,ANS,6,SUM,0,B,B)
-      GO TO 10
-C
-C     HANKEL FUNCTION FORM OF SOMMERFELD INTEGRALS
-C
-4     JH=1
-      CP1=DCMPLX(0.D0,.4*CK2)
-      CP2=DCMPLX(.6*CK2,-.2*CK2)
-      CP3=DCMPLX(1.02*CK2,-.2*CK2)
-      A=CP1
-      B=CP2
-      CALL ROM1 (6,SUM,2)
-      A=CP2
-      B=CP3
-      CALL ROM1 (6,ANS,2)
-      DO 5 I=1,6
-5     SUM(I)=-(SUM(I)+ANS(I))
-C     PATH FROM IMAGINARY AXIS TO -INFINITY
-      SLOPE=1000.
-      IF (ZPH.GT..001*RHO) SLOPE=RHO/ZPH
-      DEL=PTP/DEL
-      DELTA=DCMPLX(-1.D0,SLOPE)*DEL/SQRT(1.+SLOPE*SLOPE)
-      DELTA2=-DCONJG(DELTA)
-      CALL GSHANK (CP1,DELTA,ANS,6,SUM,0,BK,BK)
-      RMIS=RHO*(DREAL(CK1)-CK2)
-      IF (RMIS.LT.2.*CK2) GO TO 8
-      IF (RHO.LT.1.E-10) GO TO 8
-      IF (ZPH.LT.1.E-10) GO TO 6
-      BK=DCMPLX(-ZPH,RHO)*(CK1-CP3)
-      RMIS=-DREAL(BK)/ABS(DIMAG(BK))
-      IF(RMIS.GT.4.*RHO/ZPH)GO TO 8
-C     INTEGRATE UP BETWEEN BRANCH CUTS, THEN TO + INFINITY
-6     CP1=CK1-(.1,.2)
-      CP2=CP1+.2
-      BK=DCMPLX(0.D0,DEL)
-      CALL GSHANK (CP1,BK,SUM,6,ANS,0,BK,BK)
-      A=CP1
-      B=CP2
-      CALL ROM1 (6,ANS,1)
-      DO 7 I=1,6
-7     ANS(I)=ANS(I)-SUM(I)
-      CALL GSHANK (CP3,BK,SUM,6,ANS,0,BK,BK)
-      CALL GSHANK (CP2,DELTA2,ANS,6,SUM,0,BK,BK)
-      GO TO 10
-C     INTEGRATE BELOW BRANCH POINTS, THEN TO + INFINITY
-8     DO 9 I=1,6
-9     SUM(I)=-ANS(I)
-      RMIS=DREAL(CK1)*1.01
-      IF (CK2+1..GT.RMIS) RMIS=CK2+1.
-      BK=DCMPLX(RMIS,.99*DIMAG(CK1))
-      DELTA=BK-CP3
-      DELTA=DELTA*DEL/ABS(DELTA)
-      CALL GSHANK (CP3,DELTA,ANS,6,SUM,1,BK,DELTA2)
-10    ANS(6)=ANS(6)*CK1
-C     CONJUGATE SINCE NEC USES EXP(+JWT)
-      ERV=DCONJG(CK1SQ*ANS(3))
-      EZV=DCONJG(CK1SQ*(ANS(2)+CK2SQ*ANS(5)))
-      ERH=DCONJG(CK2SQ*(ANS(1)+ANS(6)))
-      EPH=-DCONJG(CK2SQ*(ANS(4)+ANS(6)))
-      RETURN
-      END
-      SUBROUTINE GSHANK (START,DELA,SUM,NANS,SEED,IBK,BK,DELB)
-C
-C     GSHANK INTEGRATES THE 6 SOMMERFELD INTEGRALS FROM START TO
-C     INFINITY (UNTIL CONVERGENCE) IN LAMBDA.  AT THE BREAK POINT, BK,
-C     THE STEP INCREMENT MAY BE CHANGED FROM DELA TO DELB.  SHANK S
-C     ALGORITHM TO ACCELERATE CONVERGENCE OF A SLOWLY CONVERGING SERIES
-C     IS USED
-C
-      IMPLICIT REAL*8(A-H,O-Z)
-      SAVE
-      COMPLEX*16 START,DELA,SUM,SEED,BK,DELB,A,B,Q1,Q2,ANS1,ANS2,A1,A2,
-     1AS1,AS2,DEL,AA
-      COMMON /CNTOUR/ A,B
-      DIMENSION Q1(6,20), Q2(6,20), ANS1(6), ANS2(6), SUM(6), SEED(6)
-      DATA CRIT/1.E-4/,MAXH/20/
-      RBK=DREAL(BK)
-      DEL=DELA
-      IBX=0
-      IF (IBK.EQ.0) IBX=1
-      DO 1 I=1,NANS
-1     ANS2(I)=SEED(I)
-      B=START
-2     DO 20 INT=1,MAXH
-      INX=INT
-      A=B
-      B=B+DEL
-      IF (IBX.EQ.0.AND.DREAL(B).GE.RBK) GO TO 5
-      CALL ROM1 (NANS,SUM,2)
-      DO 3 I=1,NANS
-3     ANS1(I)=ANS2(I)+SUM(I)
-      A=B
-      B=B+DEL
-      IF (IBX.EQ.0.AND.DREAL(B).GE.RBK) GO TO 6
-      CALL ROM1 (NANS,SUM,2)
-      DO 4 I=1,NANS
-4     ANS2(I)=ANS1(I)+SUM(I)
-      GO TO 11
-C     HIT BREAK POINT.  RESET SEED AND START OVER.
-5     IBX=1
-      GO TO 7
-6     IBX=2
-7     B=BK
-      DEL=DELB
-      CALL ROM1 (NANS,SUM,2)
-      IF (IBX.EQ.2) GO TO 9
-      DO 8 I=1,NANS
-8     ANS2(I)=ANS2(I)+SUM(I)
-      GO TO 2
-9     DO 10 I=1,NANS
-10    ANS2(I)=ANS1(I)+SUM(I)
-      GO TO 2
-11    DEN=0.
-      DO 18 I=1,NANS
-      AS1=ANS1(I)
-      AS2=ANS2(I)
-      IF (INT.LT.2) GO TO 17
-      DO 16 J=2,INT
-      JM=J-1
-      AA=Q2(I,JM)
-      A1=Q1(I,JM)+AS1-2.*AA
-      IF (DREAL(A1).EQ.0..AND.DIMAG(A1).EQ.0.) GO TO 12
-      A2=AA-Q1(I,JM)
-      A1=Q1(I,JM)-A2*A2/A1
-      GO TO 13
-12    A1=Q1(I,JM)
-13    A2=AA+AS2-2.*AS1
-      IF (DREAL(A2).EQ.0..AND.DIMAG(A2).EQ.0.) GO TO 14
-      A2=AA-(AS1-AA)*(AS1-AA)/A2
-      GO TO 15
-14    A2=AA
-15    Q1(I,JM)=AS1
-      Q2(I,JM)=AS2
-      AS1=A1
-16    AS2=A2
-17    Q1(I,INT)=AS1
-      Q2(I,INT)=AS2
-      AMG=ABS(DREAL(AS2))+ABS(DIMAG(AS2))
-      IF (AMG.GT.DEN) DEN=AMG
-18    CONTINUE
-      DENM=1.E-3*DEN*CRIT
-      JM=INT-3
-      IF (JM.LT.1) JM=1
-      DO 19 J=JM,INT
-      DO 19 I=1,NANS
-      A1=Q2(I,J)
-      DEN=(ABS(DREAL(A1))+ABS(DIMAG(A1)))*CRIT
-      IF (DEN.LT.DENM) DEN=DENM
-      A1=Q1(I,J)-A1
-      AMG=ABS(DREAL(A1))+ABS(DIMAG(A1))
-      IF (AMG.GT.DEN) GO TO 20
-19    CONTINUE
-      GO TO 22
-20    CONTINUE
-      WRITE(*,24)
-      DO 21 I=1,NANS
-21    WRITE(*,25) Q1(I,INX),Q2(I,INX)
-22    DO 23 I=1,NANS
-23    SUM(I)=.5*(Q1(I,INX)+Q2(I,INX))
-      RETURN
-C
-24    FORMAT (46H **** NO CONVERGENCE IN SUBROUTINE GSHANK ****)
-25    FORMAT (1X,1P10E12.5)
-      END
-      SUBROUTINE HANKEL (Z,H0,H0P)
-C
-C     HANKEL EVALUATES HANKEL FUNCTION OF THE FIRST KIND, ORDER ZERO,
-C     AND ITS DERIVATIVE FOR COMPLEX ARGUMENT Z.
-C
-      IMPLICIT REAL*8(A-H,O-Z)
-      SAVE
-      COMPLEX*16 CLOGZ,H0,H0P,J0,J0P,P0Z,P1Z,Q0Z,Q1Z,Y0,Y0P,Z,ZI,ZI2,ZK,
-     1FJ
-      DIMENSION M(101), A1(25), A2(25), A3(25), A4(25), FJX(2)
-      EQUIVALENCE (FJ,FJX)
-      DATA PI,GAMMA,C1,C2,C3,P10,P20/3.141592654,.5772156649,-.024578509
-     15,.3674669052,.7978845608,.0703125,.1121520996/
-      DATA Q10,Q20,P11,P21,Q11,Q21/.125,.0732421875,.1171875,.1441955566
-     1,.375,.1025390625/
-      DATA POF,INIT/.7853981635,0/,FJX/0.,1./
-      IF (INIT.EQ.0) GO TO 5
-1     ZMS=Z*DCONJG(Z)
-      IF (ZMS.NE.0.) GO TO 2
-      WRITE(*,9)
-      STOP
-2     IB=0
-      IF (ZMS.GT.16.81) GO TO 4
-      IF (ZMS.GT.16.) IB=1
-C     SERIES EXPANSION
-      IZ=1.+ZMS
-      MIZ=M(IZ)
-      J0=(1.,0.)
-      J0P=J0
-      Y0=(0.,0.)
-      Y0P=Y0
-      ZK=J0
-      ZI=Z*Z
-      DO 3 K=1,MIZ
-      ZK=ZK*A1(K)*ZI
-      J0=J0+ZK
-      J0P=J0P+A2(K)*ZK
-      Y0=Y0+A3(K)*ZK
-3     Y0P=Y0P+A4(K)*ZK
-      J0P=-.5*Z*J0P
-      CLOGZ=LOG(.5*Z)
-      Y0=(2.*J0*CLOGZ-Y0)/PI+C2
-      Y0P=(2./Z+2.*J0P*CLOGZ+.5*Y0P*Z)/PI+C1*Z
-      H0=J0+FJ*Y0
-      H0P=J0P+FJ*Y0P
-      IF (IB.EQ.0) RETURN
-      Y0=H0
-      Y0P=H0P
-C     ASYMPTOTIC EXPANSION
-4     ZI=1./Z
-      ZI2=ZI*ZI
-      P0Z=1.+(P20*ZI2-P10)*ZI2
-      P1Z=1.+(P11-P21*ZI2)*ZI2
-      Q0Z=(Q20*ZI2-Q10)*ZI
-      Q1Z=(Q11-Q21*ZI2)*ZI
-      ZK=EXP(FJ*(Z-POF))*SQRT(ZI)*C3
-      H0=ZK*(P0Z+FJ*Q0Z)
-      H0P=FJ*ZK*(P1Z+FJ*Q1Z)
-      IF (IB.EQ.0) RETURN
-      ZMS=COS((SQRT(ZMS)-4.)*31.41592654)
-      H0=.5*(Y0*(1.+ZMS)+H0*(1.-ZMS))
-      H0P=.5*(Y0P*(1.+ZMS)+H0P*(1.-ZMS))
-      RETURN
-C     INITIALIZATION OF CONSTANTS
-5     PSI=-GAMMA
-      DO 6 K=1,25
-      A1(K)=-.25D0/(K*K)
-      A2(K)=1.D0/(K+1.D0)
-      PSI=PSI+1.D0/K
-      A3(K)=PSI+PSI
-6     A4(K)=(PSI+PSI+1.D0/(K+1.D0))/(K+1.D0)
-      DO 8 I=1,101
-      TEST=1.D0
-      DO 7 K=1,24
-      INIT=K
-      TEST=-TEST*I*A1(K)
-      IF (TEST*A3(K).LT.1.D-6) GO TO 8
-7     CONTINUE
-8     M(I)=INIT
-      GO TO 1
-C
-9     FORMAT (34H ERROR - HANKEL NOT VALID FOR Z=0.)
-      END
-      SUBROUTINE LAMBDA (T,XLAM,DXLAM)
-C
-C     COMPUTE INTEGRATION PARAMETER XLAM=LAMBDA FROM PARAMETER T.
-C
-      IMPLICIT REAL*8(A-H,O-Z)
-      SAVE
-      COMPLEX*16 A,B,XLAM,DXLAM
-      COMMON /CNTOUR/ A,B
-      DXLAM=B-A
-      XLAM=A+DXLAM*T
-      RETURN
-      END
-      SUBROUTINE ROM1 (N,SUM,NX)
-C
-C     ROM1 INTEGRATES THE 6 SOMMERFELD INTEGRALS FROM A TO B IN LAMBDA.
-C     THE METHOD OF VARIABLE INTERVAL WIDTH ROMBERG INTEGRATION IS USED.
-C
-      IMPLICIT REAL*8(A-H,O-Z)
-      SAVE
-      COMPLEX*16 A,B,SUM,G1,G2,G3,G4,G5,T00,T01,T10,T02,T11,T20
-      COMMON /CNTOUR/ A,B
-      DIMENSION SUM(6), G1(6), G2(6), G3(6), G4(6), G5(6), T01(6), T10(6
-     1), T20(6)
-      DATA NM,NTS,RX/131072,4,1.E-4/
-      LSTEP=0
-      Z=0.
-      ZE=1.
-      S=1.
-      EP=S/(1.E4*NM)
-      ZEND=ZE-EP
-      DO 1 I=1,N
-1     SUM(I)=(0.,0.)
-      NS=NX
-      NT=0
-      CALL SAOA (Z,G1)
-2     DZ=S/NS
-      IF (Z+DZ.LE.ZE) GO TO 3
-      DZ=ZE-Z
-      IF (DZ.LE.EP) GO TO 17
-3     DZOT=DZ*.5
-      CALL SAOA (Z+DZOT,G3)
-      CALL SAOA (Z+DZ,G5)
-4     NOGO=0
-      DO 5 I=1,N
-      T00=(G1(I)+G5(I))*DZOT
-      T01(I)=(T00+DZ*G3(I))*.5
-      T10(I)=(4.*T01(I)-T00)/3.
-C     TEST CONVERGENCE OF 3 POINT ROMBERG RESULT
-      CALL TEST (DREAL(T01(I)),DREAL(T10(I)),TR,DIMAG(T01(I)),DIMAG(T10
-     1(I)),TI,0.d0)
-      IF (TR.GT.RX.OR.TI.GT.RX) NOGO=1
-5     CONTINUE
-      IF (NOGO.NE.0) GO TO 7
-      DO 6 I=1,N
-6     SUM(I)=SUM(I)+T10(I)
-      NT=NT+2
-      GO TO 11
-7     CALL SAOA (Z+DZ*.25,G2)
-      CALL SAOA (Z+DZ*.75,G4)
-      NOGO=0
-      DO 8 I=1,N
-      T02=(T01(I)+DZOT*(G2(I)+G4(I)))*.5
-      T11=(4.*T02-T01(I))/3.
-      T20(I)=(16.*T11-T10(I))/15.
-C     TEST CONVERGENCE OF 5 POINT ROMBERG RESULT
-      CALL TEST (DREAL(T11),DREAL(T20(I)),TR,DIMAG(T11),DIMAG(T20(I)),TI
-     1,0.d0)
-      IF (TR.GT.RX.OR.TI.GT.RX) NOGO=1
-8     CONTINUE
-      IF (NOGO.NE.0) GO TO 13
-9     DO 10 I=1,N
-10    SUM(I)=SUM(I)+T20(I)
-      NT=NT+1
-11    Z=Z+DZ
-      IF (Z.GT.ZEND) GO TO 17
-      DO 12 I=1,N
-12    G1(I)=G5(I)
-      IF (NT.LT.NTS.OR.NS.LE.NX) GO TO 2
-      NS=NS/2
-      NT=1
-      GO TO 2
-13    NT=0
-      IF (NS.LT.NM) GO TO 15
-      IF (LSTEP.EQ.1) GO TO 9
-      LSTEP=1
-      CALL LAMBDA (Z,T00,T11)
-      WRITE(*,18) T00
-      WRITE(*,19) Z,DZ,A,B
-      DO 14 I=1,N
-14    WRITE(*,19) G1(I),G2(I),G3(I),G4(I),G5(I)
-      GO TO 9
-15    NS=NS*2
-      DZ=S/NS
-      DZOT=DZ*.5
-      DO 16 I=1,N
-      G5(I)=G3(I)
-16    G3(I)=G2(I)
-      GO TO 4
-17    CONTINUE
-      RETURN
-C
-18    FORMAT (38H ROM1 -- STEP SIZE LIMITED AT LAMBDA =,1P2E12.5)
-19    FORMAT (1X,1P10E12.5)
-      END
-      SUBROUTINE SAOA (T,ANS)
-C
-C     SAOA COMPUTES THE INTEGRAND FOR EACH OF THE 6
-C     SOMMERFELD INTEGRALS FOR SOURCE AND OBSERVER ABOVE GROUND
-C
-      IMPLICIT REAL*8(A-H,O-Z)
-      SAVE
-      COMPLEX*16 ANS,XL,DXL,CGAM1,CGAM2,B0,B0P,COM,CK1,CK1SQ,CKSM,CT1,
-     1CT2,CT3,DGAM,DEN1,DEN2
-      COMMON /EVLCOM/ CKSM,CT1,CT2,CT3,CK1,CK1SQ,CK2,CK2SQ,TKMAG,TSMAG,C
-     1K1R,ZPH,RHO,JH
-      DIMENSION ANS(6)
-      CALL LAMBDA (T,XL,DXL)
-      IF (JH.GT.0) GO TO 1
-C     BESSEL FUNCTION FORM
-      CALL BESSEL (XL*RHO,B0,B0P)
-      B0=2.*B0
-      B0P=2.*B0P
-      CGAM1=SQRT(XL*XL-CK1SQ)
-      CGAM2=SQRT(XL*XL-CK2SQ)
-      IF (DREAL(CGAM1).EQ.0.) CGAM1=DCMPLX(0.D0,-ABS(DIMAG(CGAM1)))
-      IF (DREAL(CGAM2).EQ.0.) CGAM2=DCMPLX(0.D0,-ABS(DIMAG(CGAM2)))
-      GO TO 2
-C     HANKEL FUNCTION FORM
-1     CALL HANKEL (XL*RHO,B0,B0P)
-      COM=XL-CK1
-      CGAM1=SQRT(XL+CK1)*SQRT(COM)
-      IF (DREAL(COM).LT.0..AND.DIMAG(COM).GE.0.) CGAM1=-CGAM1
-      COM=XL-CK2
-      CGAM2=SQRT(XL+CK2)*SQRT(COM)
-      IF (DREAL(COM).LT.0..AND.DIMAG(COM).GE.0.) CGAM2=-CGAM2
-2     XLR=XL*DCONJG(XL)
-      IF (XLR.LT.TSMAG) GO TO 3
-      IF (DIMAG(XL).LT.0.) GO TO 4
-      XLR=DREAL(XL)
-      IF (XLR.LT.CK2) GO TO 5
-      IF (XLR.GT.CK1R) GO TO 4
-3     DGAM=CGAM2-CGAM1
-      GO TO 7
-4     SIGN=1.
-      GO TO 6
-5     SIGN=-1.
-6     DGAM=1./(XL*XL)
-      DGAM=SIGN*((CT3*DGAM+CT2)*DGAM+CT1)/XL
-7     DEN2=CKSM*DGAM/(CGAM2*(CK1SQ*CGAM2+CK2SQ*CGAM1))
-      DEN1=1./(CGAM1+CGAM2)-CKSM/CGAM2
-      COM=DXL*XL*EXP(-CGAM2*ZPH)
-      ANS(6)=COM*B0*DEN1/CK1
-      COM=COM*DEN2
-      IF (RHO.EQ.0.) GO TO 8
-      B0P=B0P/RHO
-      ANS(1)=-COM*XL*(B0P+B0*XL)
-      ANS(4)=COM*XL*B0P
-      GO TO 9
-8     ANS(1)=-COM*XL*XL*.5
-      ANS(4)=ANS(1)
-9     ANS(2)=COM*CGAM2*CGAM2*B0
-      ANS(3)=-ANS(4)*CGAM2*RHO
-      ANS(5)=COM*B0
-      RETURN
-      END
-
+Cav03 return
+Cav03 end
