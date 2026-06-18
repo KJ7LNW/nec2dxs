@@ -8,7 +8,7 @@ C	av04	16-mar-02	Status='NEW', somehow seems not to replace existing file.
 C	av05	21-okt-02	Max number of loads (LOADMX) made equal to max-nr of segments.
 C	av06	21-okt-02	Max number of NT cards (NETMX) increased from 30 to 99
 C	av07	21-okt-02	Max number of EX cards (NSMAX) increased from 30 to 99
-C	av08  22-oct-02	Use of VSRC is uncertain, in some sources equal 10 and some 
+C	av08  	22-oct-02	Use of VSRC is uncertain, in some sources equal 10 and some 
 C				equal 30 (=nr EX?). What should be new value ??? 
 C	av09	??		??
 C	av010	30-jan-03	Used DGJJ port of G77 compiler which delivers speed increase
@@ -19,6 +19,8 @@ C	av013	29-sep-03	MinGW port used for both 11K segs and virtual memory usage.
 C	av014	09-oct-03	Max number of segs at junction/single-seg (JMAX) increased from 30 to 60
 C	av015	05-nov-04	BugFix: Use default NGF name when nothing specified.
 C	av016	09-nov-06	Official Nec2 bugfix by J.Burke, see nec-list at robomod.net
+C	av017	30-jan-08	VSRC (30) var also increase to netmx, see also av08
+C	av018	10-oct-08	av015 did not work properly in all cases.
 C
 C     History:
 C        Date      Change
@@ -151,8 +153,8 @@ Cav03     & 'J. Bergervoet (bergervo@prl.philips.nl)'
       print *, ''
 	print *, 
      & 'Merged nec2d/som2d file created by Arie Voors. (4nec2@gmx.net)'
-	print *,'Build 2.6  9-nov-06  ',
-     & '(maxLD=',MaxSeg,', MaxEX=',nsmax,', MaxTL=',netmx,')'	! av011
+	print *,'Build 2.7  30-jan-08  ',
+     & '(maxLD=',loadmx,', MaxEX=',nsmax,', MaxTL=',netmx,')'	! av011
 	print *,'Using ',G77PORT		! 'XX port for G77 version YY'
       print *, ''
 
@@ -5223,6 +5225,9 @@ C*** ERROR CORRECTED 11/20/89 *******************************
 C***
       DATA IGFL/20/
 Cav12 OPEN(UNIT=IGFL,FILE='NGF2D.NEC',FORM='UNFORMATTED',STATUS='OLD')
+
+Cav018	write (3, '(2A)') 'Opening NGF-file : ',ngfnam			! av12
+
 	OPEN(UNIT=IGFL,FILE=NGFNAM,FORM='UNFORMATTED',STATUS='OLD',ERR=30)! av12
 	goto 31										! av12
 
@@ -5552,6 +5557,9 @@ Cav04 OPEN(UNIT=IGFL,FILE='NGF2D.NEC',FORM='UNFORMATTED',STATUS='NEW')
 
 Cav12 OPEN(UNIT=IGFL,FILE='NGF2D.NEC',
 Cav12 &FORM='UNFORMATTED',STATUS='UNKNOWN')
+
+C      write (3, '(2A)') 'Writing NGF-file : ',ngfnam			! av12
+
 	OPEN(UNIT=IGFL,FILE=NGFNAM,
      &FORM='UNFORMATTED',STATUS='UNKNOWN')	! av12
 
@@ -7186,9 +7194,11 @@ Cav07 DIMENSION CMN(30,30), RHNT(30), IPNT(30), NTEQA(30), NTSCA(30),
 Cav07 &RHS(3*MAXSEG), VSRC(30), RHNX(30)
 
 Cav08	Keep VSRC dimension to 30 (for now) as it's use is uncertain.
+Cav17 VSRC made equal to netmx as it somehow limited the nr of NT's to 30
 
       DIMENSION CMN(netmx,netmx), RHNT(netmx), IPNT(netmx), 
-     &NTEQA(netmx), NTSCA(netmx), RHS(3*MAXSEG), VSRC(30), RHNX(netmx)
+     &NTEQA(netmx), NTSCA(netmx), RHS(3*MAXSEG), VSRC(netmx), 
+     &RHNX(netmx)								! av017
 
 Cav06 DATA NDIMN,NDIMNP/30,31/,TP/6.283185308D+0/
       DATA NDIMN,NDIMNP/netmx,netmx+1/,TP/6.283185308D+0/	! av06
@@ -8516,6 +8526,8 @@ C  Set the return variables to the buffer array elements.
       RETURN
       END
 
+
+
       SUBROUTINE PARSIT(INUNIT,MAXINT,MAXREA,CMND,INTFLD,REAFLD,IEOF)
 
 C  UPDATED:  21 July 87
@@ -8554,6 +8566,7 @@ C  *****  Global variables		! av12
 C
       READ(INUNIT, 8000, IOSTAT=IEOF) REC
       CALL UPCASE( REC, REC, TOTCOL )
+
 C
 C  Store opcode and clear field arrays.
 C
@@ -8568,6 +8581,10 @@ C
            BGNFLD(I)= 0
            ENDFLD(I)= 0
  3020 CONTINUE
+
+Cav018	print *,'parsit:',cmnd,totcol,maxint,maxrea
+Cav018	print *, rec
+
 C
 C  Find the beginning and ending of each field as well as the total number of
 C  fields.
@@ -8610,9 +8627,12 @@ C
 C  Check to see if the total number of value fields is within the precribed
 C  limits.
 
- 5000   IF (TOTFLD .EQ. 0) THEN
-	       if ((cmnd.eq.'WG').or.(cmnd.eq.'GF'))
-     &       ngfnam='NGF2X.NEC' 				! End of record ? av15
+Cav018 5000	print *,totfld,maxint,cmnd,rec
+
+ 5000	if ((cmnd.eq.'WG').or.(cmnd.eq.'GF')) then	! Init default NGFNAM
+	   ngfnam='NGF2D.NEC' 				! av15
+        endif
+	IF (TOTFLD .EQ. 0) THEN
              RETURN
         ELSE IF (TOTFLD .GT. LAST) THEN
              WRITE(3, 8001 )
@@ -8626,9 +8646,12 @@ C  Parse out integer values and store into integer buffer array.
              LENGTH= ENDFLD(I) - BGNFLD(I) + 1
              BUFFER= REC(BGNFLD(I):ENDFLD(I))
 
+Cav018	print *,i,'buf(1:1)=',buffer(1:1)
+
 	if (((cmnd.eq.'WG').or.(cmnd.eq.'GF')).and.
-     &(buffer(1:1).ne.'0') .and. (buffer(1:1).ne.'1')) then	! Text field, av12
+     &  (buffer(1:1).ne.'0') .and. (buffer(1:1).ne.'1')) then	! Text field, av12
 	   ngfnam = rec(bgnfld(i):endfld(i))			! av12
+Cav018	   write (3, '(2A)') 'NGF-file set to : ',ngfnam			! av12
 	   return								! av12
 	endif									! av12
 
