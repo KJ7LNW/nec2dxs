@@ -8560,7 +8560,7 @@ C  *****  Global variables		! av12
 	character*80 ngfnam		! av12
 	common /ngfnam/ ngfnam		! av12
 
-      CHARACTER  CMND*2, BUFFER*20, REC*80
+      CHARACTER  CMND*2, BUFFER*20, REC*200
       INTEGER    INTFLD(MAXINT)
       INTEGER    BGNFLD(12), ENDFLD(12), TOTCOL, TOTFLD
       LOGICAL    FLDTRM
