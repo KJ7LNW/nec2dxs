@@ -11,12 +11,14 @@ C	av07	21-okt-02	Max number of EX cards (NSMAX) increased from 30 to 99
 C	av08  22-oct-02	Use of VSRC is uncertain, in some sources equal 10 and some 
 C				equal 30 (=nr EX?). What should be new value ??? 
 C	av09	??		??
-C	av10	30-jan-03	Used DGJJ port of G77 compiler which delivers speed increase
+C	av010	30-jan-03	Used DGJJ port of G77 compiler which delivers speed increase
 C				from 30 to 60% for small segment counts
-C	av11	04-sep-03	Logging of NetMX, NSMAX changed
-C	av12	29-sep-03	Enable user-specified NGF file-name.
-C	av13	29-sep-03	MinGW port used for both 11K segs and virtual memory usage.
-C	av14	09-oct-03	Max number of segs at junction/single-seg (JMAX) increased from 30 to 60
+C	av011	04-sep-03	Logging of NetMX, NSMAX changed
+C	av012	29-sep-03	Enable user-specified NGF file-name.
+C	av013	29-sep-03	MinGW port used for both 11K segs and virtual memory usage.
+C	av014	09-oct-03	Max number of segs at junction/single-seg (JMAX) increased from 30 to 60
+C	av015	05-nov-04	BugFix: Use default NGF name when nothing specified.
+C	av016	09-nov-06	Official Nec2 bugfix by J.Burke, see nec-list at robomod.net
 C
 C     History:
 C        Date      Change
@@ -149,7 +151,7 @@ Cav03     & 'J. Bergervoet (bergervo@prl.philips.nl)'
       print *, ''
 	print *, 
      & 'Merged nec2d/som2d file created by Arie Voors. (4nec2@gmx.net)'
-	print *,'Build 2.4  29-sep-03  ',
+	print *,'Build 2.6  9-nov-06  ',
      & '(maxLD=',MaxSeg,', MaxEX=',nsmax,', MaxTL=',netmx,')'	! av011
 	print *,'Using ',G77PORT		! 'XX port for G77 version YY'
       print *, ''
@@ -2866,6 +2868,7 @@ C     TRANSPOSED FILL - C(WS) AND D(WS)PRIME (=CW)
 9     CONTINUE
       RETURN
       END
+
       SUBROUTINE CMWW (J,I1,I2,CM,NR,CW,NW,ITRP)
 C ***
 C     DOUBLE PRECISION 6/4/85
@@ -2891,7 +2894,9 @@ Cav14-CON(10),NPCON
      &EZS,EXC,EYC,EZC,RKH,IND1,INDD1,IND2,INDD2,IEXK,IPGND
       DIMENSION CM(NR,1), CW(NW,1), CAB(1), SAB(1)
       EQUIVALENCE (CAB,ALP), (SAB,BET)
+
 C     SET SOURCE SEGMENT PARAMETERS
+
       S=SI(J)
       B=BI(J)
       XJ=X(J)
@@ -2901,9 +2906,13 @@ C     SET SOURCE SEGMENT PARAMETERS
       SABJ=SAB(J)
       SALPJ=SALP(J)
       IF (IEXK.EQ.0) GO TO 16
+
 C     DECIDE WETHER EXT. T.W. APPROX. CAN BE USED
+
       IPR=ICON1(J)
+      IF(IPR.GT.10000)GO TO 5      !<---NEW, av016
       IF (IPR) 1,6,2
+
 1     IPR=-IPR
       IF (-ICON1(IPR).NE.J) GO TO 7
       GO TO 4
@@ -2919,8 +2928,11 @@ C     DECIDE WETHER EXT. T.W. APPROX. CAN BE USED
 6     IND1=1
       GO TO 8
 7     IND1=2
+
 8     IPR=ICON2(J)
+      IF(IPR.GT.10000)GO TO 15     !<---NEW, av016
       IF (IPR) 9,14,10
+
 9     IPR=-IPR
       IF (-ICON2(IPR).NE.J) GO TO 15
       GO TO 12
@@ -5214,7 +5226,7 @@ Cav12 OPEN(UNIT=IGFL,FILE='NGF2D.NEC',FORM='UNFORMATTED',STATUS='OLD')
 	OPEN(UNIT=IGFL,FILE=NGFNAM,FORM='UNFORMATTED',STATUS='OLD',ERR=30)! av12
 	goto 31										! av12
 
-30	write (3, '(2A)') 'Error opening NGF-file : ',ngfnam			! av12
+30	write (3, '(2A)') 'ERROR opening NGF-file : ',ngfnam			! av12
 	stop											! av12
 	
 31    REWIND IGFL
@@ -7030,6 +7042,7 @@ C
      12), (T2Z,ITAG)
       EQUIVALENCE (T1XJ,CABJ), (T1YJ,SABJ), (T1ZJ,SALPJ), (T2XJ,B), (T2Y
      1J,IND1), (T2ZJ,IND2)
+
       EX=(0.,0.)
       EY=(0.,0.)
       EZ=(0.,0.)
@@ -7057,8 +7070,11 @@ C
       SABJ=SAB(I)
       SALPJ=SALP(I)
       IF (IEXK.EQ.0) GO TO 18
+
       IPR=ICON1(I)
+      IF(IPR.GT.10000)GO TO 9      !<---NEW, av016
       IF (IPR) 3,8,4
+
 3     IPR=-IPR
       IF (-ICON1(IPR).NE.I) GO TO 9
       GO TO 6
@@ -7074,8 +7090,11 @@ C
 8     IND1=1
       GO TO 10
 9     IND1=2
+
 10    IPR=ICON2(I)
+      IF(IPR.GT.10000)GO TO 17    !<---NEW, av016
       IF (IPR) 11,16,12
+
 11    IPR=-IPR
       IF (-ICON2(IPR).NE.I) GO TO 17
       GO TO 14
@@ -8017,6 +8036,7 @@ C
 91    FORMAT(1P,E13.4)
 92    FORMAT(/,3X,3A,3X,6A,3X,A)
       END
+
       SUBROUTINE QDSRC (IS,V,E)
 C ***
 C     DOUBLE PRECISION 6/4/85
@@ -8051,6 +8071,7 @@ Cav14-CON(10),NPCON
       EQUIVALENCE (T1X,SI), (T1Y,ALP), (T1Z,BET), (T2X,ICON1), (T2Y,ICON
      12), (T2Z,ITAG)
       DATA TP/6.283185308D+0/,CCJX/0.,-.01666666667D+0/
+
       I=ICON1(IS)
       ICON1(IS)=0
       CALL TBF (IS,0)
@@ -8072,8 +8093,11 @@ Cav14-CON(10),NPCON
       SABJ=SAB(J)
       SALPJ=SALP(J)
       IF (IEXK.EQ.0) GO TO 16
+
       IPR=ICON1(J)
+      IF(IPR.GT.10000)GO TO 7     !<---NEW, av016
       IF (IPR) 1,6,2
+
 1     IPR=-IPR
       IF (-ICON1(IPR).NE.J) GO TO 7
       GO TO 4
@@ -8089,8 +8113,11 @@ Cav14-CON(10),NPCON
 6     IND1=1
       GO TO 8
 7     IND1=2
+
 8     IPR=ICON2(J)
+      IF(IPR.GT.10000)GO TO 15      !<---NEW, av016
       IF (IPR) 9,14,10
+
 9     IPR=-IPR
       IF (-ICON2(IPR).NE.J) GO TO 15
       GO TO 12
@@ -8584,6 +8611,8 @@ C  Check to see if the total number of value fields is within the precribed
 C  limits.
 
  5000   IF (TOTFLD .EQ. 0) THEN
+	       if ((cmnd.eq.'WG').or.(cmnd.eq.'GF'))
+     &       ngfnam='NGF2X.NEC' 				! End of record ? av15
              RETURN
         ELSE IF (TOTFLD .GT. LAST) THEN
              WRITE(3, 8001 )
