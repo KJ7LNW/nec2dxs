@@ -3,16 +3,21 @@ C				(Thanks to Raymond Anderson for letting me know
 C				about this compiler and doing initial compilations)
 C	av01	14-mar-02	Var PI not used in routine GWAVE
 C	av02	14-mar-02	Sub SECOND already intrinsic function
-C	av03	15-mar-02	Multiple changes to include SOMNEC routines in nec2d.exe 
-C	av04	16-mar-02	Status='NEW', seems not to replace existing file.
+C	av03	15-mar-02	Multiple changes to include SOMNEC routines in nec2dx.exe
+C	av04	16-mar-02	Status='NEW', somehow seems not to replace existing file.
 C	av05	21-okt-02	Max number of loads (LOADMX) made equal to max-nr of segments.
-C	av06	21-okt-02	Max number of NT cards (NETMX) increased form 30 to 99
-C	av07	21-okt-02	Max number of EX cards (NSMAX) increased form 30 to 99
+C	av06	21-okt-02	Max number of NT cards (NETMX) increased from 30 to 99
+C	av07	21-okt-02	Max number of EX cards (NSMAX) increased from 30 to 99
 C	av08  22-oct-02	Use of VSRC is uncertain, in some sources equal 10 and some 
 C				equal 30 (=nr EX?). What should be new value ??? 
 C	av09	??		??
 C	av10	30-jan-03	Used DGJJ port of G77 compiler which delivers speed increase
-C				from 30 to 60%
+C				from 30 to 60% for small segment counts
+C	av11	04-sep-03	Logging of NetMX, NSMAX changed
+C	av12	29-sep-03	Enable user-specified NGF file-name.
+C	av13	29-sep-03	MinGW port used for both 11K segs and virtual memory usage.
+C	av14	09-oct-03	Max number of segs at junction/single-seg (JMAX) increased from 30 to 60
+C
 C     History:
 C        Date      Change
 C      -------     ----------------------------------------------
@@ -42,10 +47,12 @@ C     DOUBLE PRECISION 6/4/85
 C
       INCLUDE 'NEC2DPAR.INC'	! Declares MAXSEG,MAXMAT,LOADMX,NETMX and NSMAX
 					! AV05,AV06,AV07
+
       PARAMETER (IRESRV=MAXMAT**2)
 
       IMPLICIT REAL*8(A-H,O-Z)
       CHARACTER AIN*2,ATST*2,INFILE*80,OUTFILE*80
+	
 C***
       REAL*8 HPOL,PNET
 C      CHARACTER INMSG*48,OUTMSG*40
@@ -71,8 +78,10 @@ C      LOGICAL*4 GetPut,LGTPT
      -KSYMP,IFAR,IPERF
       COMMON /ZLOAD/ ZARRAY(MAXSEG),NLOAD,NLODF
       COMMON/YPARM/Y11A(5),Y12A(20),NCOUP,ICOUP,NCTAG(5),NCSEG(5)
-      COMMON /SEGJ/ AX(30),BX(30),CX(30),JCO(30),JSNO,ISCON(50),NSCON,
-     -IPCON(10),NPCON
+Cav14 COMMON /SEGJ/ AX(30),BX(30),CX(30),JCO(30),JSNO,ISCON(50),NSCON,
+Cav14 -IPCON(10),NPCON
+      COMMON /SEGJ/ AX(jmax),BX(jmax),CX(jmax),JCO(jmax),	! av14
+     -JSNO,ISCON(50),NSCON,IPCON(10),NPCON			! av14
 
 Cav07 COMMON/VSORC/VQD(30),VSANT(30),VQDS(30),IVQD(30),ISANT(30),
 Cav07 -IQDS(30),NVQD,NSANT,NQDS
@@ -121,6 +130,8 @@ C***
 Cav05-7 DATA LOADMX,NSMAX,NETMX/30,30,30/,NORMF/200/
       DATA NORMF/200/							
 
+	INCLUDE 'G77PORT.INC'	! Sets G77 port and version used to compile/link.
+
       print *, ''
       print *, 'Numerical Electromagnetics Code, ',
      &'double precision version (nec2d)'
@@ -137,9 +148,10 @@ Cav03     & 'J. Bergervoet (bergervo@prl.philips.nl)'
 
       print *, ''
 	print *, 
-     & 'Merged nec2d/som2d file created by Arie. (4nec2@gmx.net)'
-	print *,
-     & 'V2.2  31-jan-2003   (maxLD=MaxSeg, MaxEX=99, MaxTL=64)'
+     & 'Merged nec2d/som2d file created by Arie Voors. (4nec2@gmx.net)'
+	print *,'Build 2.4  29-sep-03  ',
+     & '(maxLD=',MaxSeg,', MaxEX=',nsmax,', MaxTL=',netmx,')'	! av011
+	print *,'Using ',G77PORT		! 'XX port for G77 version YY'
       print *, ''
 
 C***VAX
@@ -2052,8 +2064,10 @@ C
      &ITAG(2*MAXSEG),ICONX(MAXSEG),LD,N1,N2,N,NP,M1,M2,M,MP,IPSYM
       COMMON /CRNT/ AIR(MAXSEG),AII(MAXSEG),BIR(MAXSEG),BII(MAXSEG),
      &CIR(MAXSEG),CII(MAXSEG),CUR(3*MAXSEG)
-      COMMON /SEGJ/ AX(30),BX(30),CX(30),JCO(30),JSNO,ISCON(50),NSCON,IP
-     1CON(10),NPCON
+Cav14 COMMON /SEGJ/ AX(30),BX(30),CX(30),JCO(30),JSNO,ISCON(50),NSCON,IP
+Cav14-CON(10),NPCON
+      COMMON /SEGJ/ AX(jmax),BX(jmax),CX(jmax),JCO(jmax),	! av14
+     -JSNO,ISCON(50),NSCON,IPCON(10),NPCON			! av14
 
 Cav07 COMMON /VSORC/ VQD(30),VSANT(30),VQDS(30),IVQD(30),ISANT(30),IQDS(
 Cav07 130),NVQD,NSANT,NQDS
@@ -2151,8 +2165,11 @@ C     CMNGF FILLS INTERACTION MATRICIES B, C, AND D FOR N.G.F. SOLUTION
      &ALP(MAXSEG),BET(MAXSEG),WLAM,ICON1(2*MAXSEG),ICON2(2*MAXSEG),
      &ITAG(2*MAXSEG),ICONX(MAXSEG),LD,N1,N2,N,NP,M1,M2,M,MP,IPSYM
       COMMON /ZLOAD/ ZARRAY(MAXSEG),NLOAD,NLODF
-      COMMON /SEGJ/ AX(30),BX(30),CX(30),JCO(30),JSNO,ISCON(50),NSCON,IP
-     1CON(10),NPCON
+Cav14 COMMON /SEGJ/ AX(30),BX(30),CX(30),JCO(30),JSNO,ISCON(50),NSCON,IP
+Cav14-CON(10),NPCON
+      COMMON /SEGJ/ AX(jmax),BX(jmax),CX(jmax),JCO(jmax),	! av14
+     -JSNO,ISCON(50),NSCON,IPCON(10),NPCON			! av14
+
       COMMON /DATAJ/ S,B,XJ,YJ,ZJ,CABJ,SABJ,SALPJ,EXK,EYK,EZK,EXS,EYS,
      &EZS,EXC,EYC,EZC,RKH,IND1,INDD1,IND2,INDD2,IEXK,IPGND
       COMMON /MATPAR/ ICASE,NBLOKS,NPBLK,NLAST,NBLSYM,NPSYM,NLSYM,IMAT,I
@@ -2428,8 +2445,12 @@ C
       COMMON /SMAT/ SSX(16,16)
       COMMON /SCRATM/ D(2*MAXSEG)
       COMMON /ZLOAD/ ZARRAY(MAXSEG),NLOAD,NLODF
-      COMMON /SEGJ/ AX(30),BX(30),CX(30),JCO(30),JSNO,ISCON(50),NSCON,IP
-     1CON(10),NPCON
+
+Cav14 COMMON /SEGJ/ AX(30),BX(30),CX(30),JCO(30),JSNO,ISCON(50),NSCON,IP
+Cav14-CON(10),NPCON
+      COMMON /SEGJ/ AX(jmax),BX(jmax),CX(jmax),JCO(jmax),	! av14
+     -JSNO,ISCON(50),NSCON,IPCON(10),NPCON			! av14
+
       COMMON /DATAJ/ S,B,XJ,YJ,ZJ,CABJ,SABJ,SALPJ,EXK,EYK,EZK,EXS,EYS,
      &EZS,EXC,EYC,EZC,RKH,IND1,INDD1,IND2,INDD2,IEXK,IPGND
       DIMENSION CM(NROW,1)
@@ -2624,8 +2645,12 @@ C     COMPUTES MATRIX ELEMENTS FOR E ALONG WIRES DUE TO PATCH CURRENT
      &KSYMP,IFAR,IPERF
       COMMON /DATAJ/ S,B,XJ,YJ,ZJ,CABJ,SABJ,SALPJ,EXK,EYK,EZK,EXS,EYS,
      &EZS,EXC,EYC,EZC,RKH,IND1,INDD1,IND2,INDD2,IEXK,IPGND
-      COMMON /SEGJ/ AX(30),BX(30),CX(30),JCO(30),JSNO,ISCON(50),NSCON,IP
-     1CON(10),NPCON
+
+Cav14 COMMON /SEGJ/ AX(30),BX(30),CX(30),JCO(30),JSNO,ISCON(50),NSCON,IP
+Cav14-CON(10),NPCON
+      COMMON /SEGJ/ AX(jmax),BX(jmax),CX(jmax),JCO(jmax),	! av14
+     -JSNO,ISCON(50),NSCON,IPCON(10),NPCON			! av14
+
       DIMENSION CAB(1), SAB(1), CM(NROW,1), CW(NROW,1)
       DIMENSION T1X(1), T1Y(1), T1Z(1), T2X(1), T2Y(1), T2Z(1), EMEL(9)
       EQUIVALENCE (T1X,SI), (T1Y,ALP), (T1Z,BET), (T2X,ICON1), (T2Y,ICON
@@ -2767,8 +2792,12 @@ C
      &ALP(MAXSEG),BET(MAXSEG),WLAM,ICON1(2*MAXSEG),ICON2(2*MAXSEG),
      &ITAG(2*MAXSEG),ICONX(MAXSEG),LD,N1,N2,N,NP,M1,M2,M,MP,IPSYM
       COMMON /ANGL/ SALP(MAXSEG)
-      COMMON /SEGJ/ AX(30),BX(30),CX(30),JCO(30),JSNO,ISCON(50),NSCON,IP
-     1CON(10),NPCON
+
+Cav14 COMMON /SEGJ/ AX(30),BX(30),CX(30),JCO(30),JSNO,ISCON(50),NSCON,IP
+Cav14-CON(10),NPCON
+      COMMON /SEGJ/ AX(jmax),BX(jmax),CX(jmax),JCO(jmax),	! av14
+     -JSNO,ISCON(50),NSCON,IPCON(10),NPCON			! av14
+
       COMMON /DATAJ/ S,B,XJ,YJ,ZJ,CABJ,SABJ,SALPJ,EXK,EYK,EZK,EXS,EYS,
      &EZS,EXC,EYC,EZC,RKH,IND1,INDD1,IND2,INDD2,IEXK,IPGND
       DIMENSION CM(NR,1), CW(NW,1), CAB(1), SAB(1)
@@ -2852,8 +2881,12 @@ C
      &ALP(MAXSEG),BET(MAXSEG),WLAM,ICON1(2*MAXSEG),ICON2(2*MAXSEG),
      &ITAG(2*MAXSEG),ICONX(MAXSEG),LD,N1,N2,N,NP,M1,M2,M,MP,IPSYM
       COMMON /ANGL/ SALP(MAXSEG)
-      COMMON /SEGJ/ AX(30),BX(30),CX(30),JCO(30),JSNO,ISCON(50),NSCON,IP
-     1CON(10),NPCON
+
+Cav14 COMMON /SEGJ/ AX(30),BX(30),CX(30),JCO(30),JSNO,ISCON(50),NSCON,IP
+Cav14-CON(10),NPCON
+      COMMON /SEGJ/ AX(jmax),BX(jmax),CX(jmax),JCO(jmax),	! av14
+     -JSNO,ISCON(50),NSCON,IPCON(10),NPCON			! av14
+
       COMMON /DATAJ/ S,B,XJ,YJ,ZJ,CABJ,SABJ,SALPJ,EXK,EYK,EZK,EXS,EYS,
      &EZS,EXC,EYC,EZC,RKH,IND1,INDD1,IND2,INDD2,IEXK,IPGND
       DIMENSION CM(NR,1), CW(NW,1), CAB(1), SAB(1)
@@ -2964,13 +2997,18 @@ C
       COMMON /DATA/ X(MAXSEG),Y(MAXSEG),Z(MAXSEG),SI(MAXSEG),BI(MAXSEG),
      &ALP(MAXSEG),BET(MAXSEG),WLAM,ICON1(2*MAXSEG),ICON2(2*MAXSEG),
      &ITAG(2*MAXSEG),ICONX(MAXSEG),LD,N1,N2,N,NP,M1,M2,M,MP,IPSYM
-      COMMON /SEGJ/ AX(30),BX(30),CX(30),JCO(30),JSNO,ISCON(50),NSCON,IP
-     1CON(10),NPCON
+
+Cav14 COMMON /SEGJ/ AX(30),BX(30),CX(30),JCO(30),JSNO,ISCON(50),NSCON,IP
+Cav14-CON(10),NPCON
+      COMMON /SEGJ/ AX(jmax),BX(jmax),CX(jmax),JCO(jmax),	! av14
+     -JSNO,ISCON(50),NSCON,IPCON(10),NPCON			! av14
+
       DIMENSION X2(1), Y2(1), Z2(1)
       EQUIVALENCE (X2,SI), (Y2,ALP), (Z2,BET)
 
 Cav07 DATA JMAX/30/,SMIN/1.D-3/,NSMAX/50/,NPMAX/10/
-      DATA JMAX/30/,SMIN/1.D-3/,NPMAX/10/
+Cav14 DATA JMAX/30/,SMIN/1.D-3/,NPMAX/10/
+      DATA SMIN/1.D-3/,NPMAX/10/
 
       NSCON=0
       NPCON=0
@@ -5135,6 +5173,7 @@ C
       CO=((-1.38888889D-3*RKS+4.16666667D-2)*RKS-.5)*RK
       RETURN
       END
+
       SUBROUTINE GFIL (IPRT)
 C ***
 C     DOUBLE PRECISION 6/4/85
@@ -5162,14 +5201,23 @@ C
       COMMON /ZLOAD/ ZARRAY(MAXSEG),NLOAD,NLODF
       COMMON/SAVE/EPSR,SIG,SCRWLT,SCRWRT,FMHZ,IP(2*MAXSEG),KCOM
       COMMON/CSAVE/COM(19,5)
+
+	character ngfnam*80		! av12
+	common /ngfnam/ ngfnam		! av12
 C
 C*** ERROR CORRECTED 11/20/89 *******************************
       DIMENSION T2X(1),T2Y(1),T2Z(1)
       EQUIVALENCE (T2X,ICON1),(T2Y,ICON2),(T2Z,ITAG)
 C***
       DATA IGFL/20/
-      OPEN(UNIT=IGFL,FILE='NGF2D.NEC',FORM='UNFORMATTED',STATUS='OLD')
-      REWIND IGFL
+Cav12 OPEN(UNIT=IGFL,FILE='NGF2D.NEC',FORM='UNFORMATTED',STATUS='OLD')
+	OPEN(UNIT=IGFL,FILE=NGFNAM,FORM='UNFORMATTED',STATUS='OLD',ERR=30)! av12
+	goto 31										! av12
+
+30	write (3, '(2A)') 'Error opening NGF-file : ',ngfnam			! av12
+	stop											! av12
+	
+31    REWIND IGFL
       READ (IGFL) N1,NP,M1,MP,WLAM,FMHZ,IPSYM,KSYMP,IPERF,NRADL,EPSR,SIG
      1,SCRWLT,SCRWRT,NLODF,KCOM
       N=N1
@@ -5451,6 +5499,7 @@ C
       ERD=CIX*RNX+CIY*RNY+CIZ*RNZ
       RETURN
       END
+
       SUBROUTINE GFOUT
 C ***
 C     DOUBLE PRECISION 6/4/85
@@ -5478,6 +5527,9 @@ C
       COMMON /ZLOAD/ ZARRAY(MAXSEG),NLOAD,NLODF
       COMMON/SAVE/EPSR,SIG,SCRWLT,SCRWRT,FMHZ,IP(2*MAXSEG),KCOM
       COMMON/CSAVE/COM(19,5)
+
+	character ngfnam*80		! av12
+	common /ngfnam/ ngfnam		! av12
 C
 C*** ERROR CORRECTED 11/20/89 *******************************
       DIMENSION T2X(1),T2Y(1),T2Z(1)
@@ -5485,8 +5537,12 @@ C*** ERROR CORRECTED 11/20/89 *******************************
 C***
       DATA IGFL/20/
 Cav04 OPEN(UNIT=IGFL,FILE='NGF2D.NEC',FORM='UNFORMATTED',STATUS='NEW')
-      OPEN(UNIT=IGFL,FILE='NGF2D.NEC',
-     &FORM='UNFORMATTED',STATUS='UNKNOWN')
+
+Cav12 OPEN(UNIT=IGFL,FILE='NGF2D.NEC',
+Cav12 &FORM='UNFORMATTED',STATUS='UNKNOWN')
+	OPEN(UNIT=IGFL,FILE=NGFNAM,
+     &FORM='UNFORMATTED',STATUS='UNKNOWN')	! av12
+
       NEQ=N+2*M
       NPEQ=NP+2*MP
       NOP=NEQ/NPEQ
@@ -7980,8 +8036,11 @@ Cav07 130),NVQD,NSANT,NQDS
       COMMON /VSORC/ VQD(nsmax),VSANT(nsmax),VQDS(nsmax),IVQD(nsmax),
      &ISANT(nsmax),IQDS(nsmax),NVQD,NSANT,NQDS			! av07
 
-      COMMON /SEGJ/ AX(30),BX(30),CX(30),JCO(30),JSNO,ISCON(50),NSCON,IP
-     1CON(10),NPCON
+Cav14 COMMON /SEGJ/ AX(30),BX(30),CX(30),JCO(30),JSNO,ISCON(50),NSCON,IP
+Cav14-CON(10),NPCON
+      COMMON /SEGJ/ AX(jmax),BX(jmax),CX(jmax),JCO(jmax),	! av14
+     -JSNO,ISCON(50),NSCON,IPCON(10),NPCON			! av14
+
       COMMON /DATAJ/ S,B,XJ,YJ,ZJ,CABJ,SABJ,SALPJ,EXK,EYK,EZK,EXS,EYS,
      &EZS,EXC,EYC,EZC,RKH,IND1,INDD1,IND2,INDD2,IEXK,IPGND
       COMMON /ANGL/ SALP(MAXSEG)
@@ -8429,6 +8488,7 @@ C  Set the return variables to the buffer array elements.
       F6=REAVAL(6)
       RETURN
       END
+
       SUBROUTINE PARSIT(INUNIT,MAXINT,MAXREA,CMND,INTFLD,REAFLD,IEOF)
 
 C  UPDATED:  21 July 87
@@ -8452,7 +8512,13 @@ C     FLDTRM     flag to indicate that pointer is in field position
 C     REC        input line as read
 C     TOTCOL     total number of columns in REC
 C     TOTFLD     number of numeric fields
+
       IMPLICIT REAL*8(A-H,O-Z)
+
+C  *****  Global variables		! av12
+	character*80 ngfnam		! av12
+	common /ngfnam/ ngfnam		! av12
+
       CHARACTER  CMND*2, BUFFER*20, REC*80
       INTEGER    INTFLD(MAXINT)
       INTEGER    BGNFLD(12), ENDFLD(12), TOTCOL, TOTFLD
@@ -8490,14 +8556,14 @@ C  VAX-like comments at the end of data records, i.e.
 C       GW 1 7 0 0 0 0 0 .5 .0001 ! DIPOLE WIRE
 C       GE ! END OF GEOMETRY
 C
-      IF (K .EQ. 33) THEN
+      IF (K .EQ. 33) THEN					! .eq. '!'
          IF (FLDTRM) ENDFLD(TOTFLD)= J - 1
          GO TO 5000
 C
 C  Set the ending index when the character is a comma or space and the pointer
 C  is in a field position (FLDTRM = .TRUE.).
 C
-          ELSE IF (K .EQ. 32  .OR.  K .EQ. 44) THEN
+          ELSE IF (K .EQ. 32  .OR.  K .EQ. 44) THEN	! space or comma ?
              IF (FLDTRM) THEN
                 ENDFLD(TOTFLD)= J - 1
                 FLDTRM= .FALSE.
@@ -8530,6 +8596,13 @@ C  Parse out integer values and store into integer buffer array.
         DO 5090 I=1,J
              LENGTH= ENDFLD(I) - BGNFLD(I) + 1
              BUFFER= REC(BGNFLD(I):ENDFLD(I))
+
+	if (((cmnd.eq.'WG').or.(cmnd.eq.'GF')).and.
+     &(buffer(1:1).ne.'0') .and. (buffer(1:1).ne.'1')) then	! Text field, av12
+	   ngfnam = rec(bgnfld(i):endfld(i))			! av12
+	   return								! av12
+	endif									! av12
+
              IND= INDEX( BUFFER(1:LENGTH), '.' )
              IF (IND .GT. 0  .AND.  IND .LT. LENGTH) GO TO 9000
              IF (IND .EQ. LENGTH) LENGTH= LENGTH - 1
@@ -8970,7 +9043,10 @@ C     COMPUTE COMPONENT OF BASIS FUNCTION I ON SEGMENT IS.
       COMMON /DATA/ X(MAXSEG),Y(MAXSEG),Z(MAXSEG),SI(MAXSEG),BI(MAXSEG),
      &ALP(MAXSEG),BET(MAXSEG),WLAM,ICON1(2*MAXSEG),ICON2(2*MAXSEG),
      &ITAG(2*MAXSEG),ICONX(MAXSEG),LD,N1,N2,N,NP,M1,M2,M,MP,IPSYM
-      DATA PI/3.141592654D+0/,JMAX/30/
+
+Cav14 DATA PI/3.141592654D+0/,JMAX/30/
+      DATA PI/3.141592654D+0/
+
       AA=0.
       BB=0.
       CC=0.
@@ -9503,8 +9579,12 @@ C ***
 C     SOLVE FOR CURRENT IN N.G.F. PROCEDURE
       COMPLEX*16 A,B,C,D,SUM,XY,Y
       COMMON /SCRATM/ Y(2*MAXSEG)
-      COMMON /SEGJ/ AX(30),BX(30),CX(30),JCO(30),JSNO,ISCON(50),NSCON,IP
-     1CON(10),NPCON
+
+Cav14 COMMON /SEGJ/ AX(30),BX(30),CX(30),JCO(30),JSNO,ISCON(50),NSCON,IP
+Cav14-CON(10),NPCON
+      COMMON /SEGJ/ AX(jmax),BX(jmax),CX(jmax),JCO(jmax),	! av14
+     -JSNO,ISCON(50),NSCON,IPCON(10),NPCON			! av14
+
       COMMON /MATPAR/ ICASE,NBLOKS,NPBLK,NLAST,NBLSYM,NPSYM,NLSYM,IMAT,I
      1CASX,NBBX,NPBX,NLBX,NBBL,NPBL,NLBL
       DIMENSION A(1), B(N1C,1), C(N1C,1), D(N2CZ,1), IP(1), XY(1)
@@ -9794,9 +9874,15 @@ C     COMPUTE BASIS FUNCTION I
       COMMON /DATA/ X(MAXSEG),Y(MAXSEG),Z(MAXSEG),SI(MAXSEG),BI(MAXSEG),
      &ALP(MAXSEG),BET(MAXSEG),WLAM,ICON1(2*MAXSEG),ICON2(2*MAXSEG),
      &ITAG(2*MAXSEG),ICONX(MAXSEG),LD,N1,N2,N,NP,M1,M2,M,MP,IPSYM
-      COMMON /SEGJ/ AX(30),BX(30),CX(30),JCO(30),JSNO,ISCON(50),NSCON,IP
-     1CON(10),NPCON
-      DATA PI/3.141592654D+0/,JMAX/30/
+
+Cav14 COMMON /SEGJ/ AX(30),BX(30),CX(30),JCO(30),JSNO,ISCON(50),NSCON,IP
+Cav14-CON(10),NPCON
+      COMMON /SEGJ/ AX(jmax),BX(jmax),CX(jmax),JCO(jmax),	! av14
+     -JSNO,ISCON(50),NSCON,IPCON(10),NPCON			! av14
+
+Cav14 DATA PI/3.141592654D+0/,JMAX/30/
+      DATA PI/3.141592654D+0/
+
       JSNO=0
       PP=0.
       JCOX=ICON1(I)
@@ -9958,9 +10044,14 @@ C     COMPUTE THE COMPONENTS OF ALL BASIS FUNCTIONS ON SEGMENT J
       COMMON /DATA/ X(MAXSEG),Y(MAXSEG),Z(MAXSEG),SI(MAXSEG),BI(MAXSEG),
      &ALP(MAXSEG),BET(MAXSEG),WLAM,ICON1(2*MAXSEG),ICON2(2*MAXSEG),
      &ITAG(2*MAXSEG),ICONX(MAXSEG),LD,N1,N2,N,NP,M1,M2,M,MP,IPSYM
-      COMMON /SEGJ/ AX(30),BX(30),CX(30),JCO(30),JSNO,ISCON(50),NSCON,IP
-     1CON(10),NPCON
-      DATA JMAX/30/
+
+Cav14 COMMON /SEGJ/ AX(30),BX(30),CX(30),JCO(30),JSNO,ISCON(50),NSCON,IP
+Cav14-CON(10),NPCON
+      COMMON /SEGJ/ AX(jmax),BX(jmax),CX(jmax),JCO(jmax),	! av14
+     -JSNO,ISCON(50),NSCON,IPCON(10),NPCON			! av14
+
+Cav14 DATA JMAX/30/
+
       JSNO=0
       JCOX=ICON1(J)
       IF (JCOX.GT.10000) GO TO 7
