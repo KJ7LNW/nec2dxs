@@ -8,14 +8,14 @@
 # already lives. Selecting a variant means choosing which directory -I names.
 
 FC     := gfortran
-FFLAGS := -std=legacy -w -O0 -ffp-contract=off -fno-automatic
+FFLAGS := -std=legacy -w -O0 -ffp-contract=off -fno-automatic -mcmodel=medium
 
 SRCDIR := src
 BINDIR := bin
 SRC    := $(SRCDIR)/nec2dxs.f
 
 # Binary suffix == variant directory suffix (src/v<suffix>/NEC2DPAR.INC).
-VARIANTS := 500 1k5 3k0 5k0 8k0 11k
+VARIANTS := 500 1k5 3k0 5k0 8k0 11k 45k3
 BINS     := $(addprefix $(BINDIR)/nec2dxs,$(VARIANTS))
 
 .PHONY: all clean

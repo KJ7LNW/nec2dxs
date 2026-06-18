@@ -89,16 +89,54 @@ directory. Nothing is copied or linked.
 
 Each variant lives in `src/v<size>/NEC2DPAR.INC`. `MAXSEG` and `MAXMAT` set the
 segment count and in-core matrix allocation; `NSMAX`, `NETMX`, and `LOADMX`
-bound the EX, NT/TL, and LD card counts.
+bound the EX, NT/TL, and LD card counts. The `Matrix CM` column is the reserved
+size of the interaction matrix, `MAXMAT**2 * 16` bytes (double-precision
+complex); it dominates the memory footprint.
 
-| Variant directory | MAXSEG | NSMAX | NETMX |
-| ----------------- | ------ | ----- | ----- |
-| `src/v500`        | 500    | 64    | 64    |
-| `src/v1k5`        | 1500   | 99    | 128   |
-| `src/v3k0`        | 3000   | 128   | 256   |
-| `src/v5k0`        | 5000   | 128   | 256   |
-| `src/v8k0`        | 8000   | 128   | 256   |
-| `src/v11k`        | 11000  | 256   | 256   |
+| Variant directory | MAXSEG | NSMAX | NETMX | Matrix `CM` |
+| ----------------- | ------ | ----- | ----- | ----------- |
+| `src/v500`        | 500    | 64    | 64    | 4 MB        |
+| `src/v1k5`        | 1500   | 99    | 128   | 36 MB       |
+| `src/v3k0`        | 3000   | 128   | 256   | 144 MB      |
+| `src/v5k0`        | 5000   | 128   | 256   | 400 MB      |
+| `src/v8k0`        | 8000   | 128   | 256   | 1.0 GB      |
+| `src/v11k`        | 11000  | 256   | 256   | 1.94 GB     |
+| `src/v45k3`       | 45300  | 256   | 256   | 32.8 GB     |
+
+### Memory model and size limits
+
+`MAXMAT` drives the dominant allocation: the complex interaction matrix
+`COMMON /CMB/ CM(MAXMAT**2)`, held at 16 bytes per element. Every other array
+scales with `MAXSEG` and is comparatively small.
+
+That matrix lands in the zero-initialised BSS segment, which occupies no file
+space and is mapped demand-zero by the kernel. Two consequences follow:
+
+- The on-disk binary is the same length for every variant; only the reserved
+  virtual size differs. `v500` and `v45k3` are byte-for-byte identical in size
+  on disk.
+- Resident memory tracks the portion of the matrix actually written — roughly
+  `16 * N**2` for an `N`-segment deck — not `MAXMAT**2`. A small deck on a large
+  variant commits only the pages it touches, so there is no resident penalty for
+  building a larger variant than a deck needs.
+
+Two ceilings bound `MAXMAT`:
+
+- Static-data addressing. Under the default x86-64 small code model all static
+  data must sit below 2 GB so 32-bit relocations reach it. `CM` plus the trailing
+  common blocks crosses that boundary near `MAXMAT = 11585`, which is why `11000`
+  is the largest stock variant. `-mcmodel=medium` routes the matrix to a
+  large-data section addressed by 64-bit relocations, lifting the wall; the
+  Makefile sets it for all variants, which is what lets `v45k3` link.
+- Integer index width. `IRESRV = MAXMAT**2` is a default 4-byte integer, so
+  `MAXMAT**2` must not exceed `2147483647`. The hard ceiling is therefore
+  `MAXMAT = 46340` (`46340**2 = 2147395600`); `46341` fails to compile. Going
+  beyond requires `-fdefault-integer-8`, which widens every default integer and
+  changes unformatted-record layout — the saved matrix files read by `GFIL`
+  become incompatible with 4-byte-integer builds.
+
+Past `46340` the limit is physical memory and the `O(N**3)` solve cost rather
+than any fixed parameter.
 
 ## Building
 
@@ -110,9 +148,11 @@ make bin/nec2dxs1k5   # a single variant
 ```
 
 The Makefile invokes `gfortran` with `-std=legacy -w -O0 -ffp-contract=off
--fno-automatic`, adding `-Isrc/v<size>` so `INCLUDE 'NEC2DPAR.INC'` resolves to
-that variant. The `-w` flag suppresses the legacy "might be used uninitialized"
-warnings noted in `_Compile.txt`.
+-fno-automatic -mcmodel=medium`, adding `-Isrc/v<size>` so `INCLUDE
+'NEC2DPAR.INC'` resolves to that variant. The `-w` flag suppresses the legacy
+"might be used uninitialized" warnings noted in `_Compile.txt`. `-mcmodel=medium`
+lets the larger variants place their multi-gigabyte matrix in static storage
+without overflowing 32-bit relocations; see Memory model and size limits.
 
 To add a custom size, create `src/v<size>/NEC2DPAR.INC` and append `<size>` to
 the `VARIANTS` list in the Makefile.
