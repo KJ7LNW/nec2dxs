@@ -192,7 +192,7 @@ Cav03 704   CALL ERROR
 
 705   CONTINUE
       print *,''
-      CALL SECOND(EXTIM)
+      CALL CPU_TIME(EXTIM)
       FJ=(0.,1.)
       LD=MAXSEG
 Cav03 NXA(1)=0		! NXA is now init by block-data SOMSET
@@ -312,7 +312,7 @@ C***
 C***
       IF (AIN.NE.ATST(13)) GO TO 15	! EN
 
-      CALL SECOND(TMP1)
+      CALL CPU_TIME(TMP1)
       TMP1=TMP1-EXTIM
       WRITE(3,201) TMP1
       STOP
@@ -774,10 +774,10 @@ Cav03      END IF
 C * * *
 C     FILL AND FACTOR PRIMARY INTERACTION MATRIX
 C
-      CALL SECOND (TIM1)
+      CALL CPU_TIME (TIM1)
       IF(ICASX.NE.0)GO TO 324
       CALL CMSET(NEQ,CM,RKH,IEXK)
-      CALL SECOND (TIM2)
+      CALL CPU_TIME (TIM2)
       TIM=TIM2-TIM1
       CALL FACTRS(NPEQ,NEQ,CM,IP,IX,11,12,13,14)
       GO TO 323
@@ -788,11 +788,11 @@ C ****
 324   IF(NEQ2.EQ.0)GO TO 333
 C ****
       CALL CMNGF(CM(IB11),CM(IC11),CM(ID11),NPBX,NEQ,NEQ2,RKH,IEXK)
-      CALL SECOND (TIM2)
+      CALL CPU_TIME (TIM2)
       TIM=TIM2-TIM1
       CALL FACGF(CM,CM(IB11),CM(IC11),CM(ID11),CM(IX11),IP,IX,NP,N1,MP,
      1M1,NEQ,NEQ2)
-323   CALL SECOND (TIM1)
+323   CALL CPU_TIME (TIM1)
       TIM2=TIM1-TIM2
       WRITE(3,153)  TIM,TIM2
 333   IGO=3
@@ -1215,7 +1215,7 @@ C***
       GO TO 2
 1     EPSCF=DCMPLX(EPR,SIG)
 2     CONTINUE
-Cav03 2     CALL SECOND (TST)
+Cav03 2     CALL CPU_TIME (TST)
       CK2=6.283185308
       CK2SQ=CK2*CK2
 C
@@ -1307,7 +1307,7 @@ C
       AR1(1,ITH,2)=EZV
       AR1(1,ITH,3)=ERH
 9     AR1(1,ITH,4)=EPH
-Cav03 CALL SECOND (TIM)
+Cav03 CALL CPU_TIME (TIM)
 C
 C     WRITE GRID ON TAPE21
 C
@@ -4484,9 +4484,9 @@ C
       IXBP=IXBLK1+1
       DO 1 IXBLK2=IXBP,NBLSYM
       CALL BLCKIN (A,IFILE3,I3,I4,1,18)
-      CALL SECOND (T1)
+      CALL CPU_TIME (T1)
       CALL LFACTR (A,NROW,IXBLK1,IXBLK2,IP(KA))
-      CALL SECOND (T2)
+      CALL CPU_TIME (T2)
       TIME=TIME+T2-T1
       IF (IXBLK2.EQ.IXBP) CALL BLCKOT (A,IU2,I1,I2,1,19)
       IF (IXBLK1.EQ.NBM.AND.IXBLK2.EQ.NBLSYM) IFILE4=IU2
@@ -7201,7 +7201,9 @@ Cav17 VSRC made equal to netmx as it somehow limited the nr of NT's to 30
      &RHNX(netmx)								! av017
 
 Cav06 DATA NDIMN,NDIMNP/30,31/,TP/6.283185308D+0/
-      DATA NDIMN,NDIMNP/netmx,netmx+1/,TP/6.283185308D+0/	! av06
+      DATA TP/6.283185308D+0/
+      NDIMN=netmx
+      NDIMNP=netmx+1	! av06
 
       NEQZ2=NEQ2
       IF(NEQZ2.EQ.0)NEQZ2=1
@@ -8697,7 +8699,7 @@ C  Print out text of record line when error occurs.
 C
 C  Input formats and output messages.
 C
- 8000   FORMAT (A80)
+ 8000   FORMAT (A200)
  8001   FORMAT (//,' ***** CARD ERROR - TOO MANY FIELDS IN RECORD')
  8002   FORMAT (//,' ***** CARD ERROR - INVALID NUMBER AT INTEGER',
      &          ' POSITION ',I1)
