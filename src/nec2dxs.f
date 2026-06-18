@@ -55,7 +55,8 @@ C
       PARAMETER (IRESRV=MAXMAT**2)
 
       IMPLICIT REAL*8(A-H,O-Z)
-      CHARACTER AIN*2,ATST*2,INFILE*80,OUTFILE*80
+      CHARACTER AIN*2,ATST*2,INFILE*256,OUTFILE*256,PLTFILE*256,ARGKEY*3
+      LOGICAL LOPENED
 	
 C***
       REAL*8 HPOL,PNET
@@ -158,6 +159,34 @@ Cav03     & 'J. Bergervoet (bergervo@prl.philips.nl)'
 	print *,'Using ',G77PORT		! 'XX port for G77 version YY'
       print *, ''
 
+C     Non-interactive driver: nec2dxs -i input -o output [-p plotfile].
+C     Parse the arguments, open the files, then skip the prompts via 705.
+      PLTFILE = ' '
+      NARGS = IARGC()
+      IF (NARGS .GE. 4) THEN
+        IARG = 1
+9001    IF (IARG .LT. NARGS) THEN
+          CALL GETARG(IARG, ARGKEY)
+          IF (ARGKEY(1:2) .EQ. '-i') THEN
+            CALL GETARG(IARG+1, INFILE)
+            IARG = IARG + 2
+          ELSE IF (ARGKEY(1:2) .EQ. '-o') THEN
+            CALL GETARG(IARG+1, OUTFILE)
+            IARG = IARG + 2
+          ELSE IF (ARGKEY(1:2) .EQ. '-p') THEN
+            CALL GETARG(IARG+1, PLTFILE)
+            IARG = IARG + 2
+          ELSE
+            IARG = IARG + 1
+          END IF
+          GO TO 9001
+        END IF
+        OPEN (UNIT=2,FILE=INFILE,STATUS='OLD',ERR=702)
+        OPEN (UNIT=3,FILE=OUTFILE,STATUS='UNKNOWN',ERR=704)
+        IF (PLTFILE .NE. ' ')
+     &    OPEN (UNIT=8,FILE=PLTFILE,STATUS='UNKNOWN')
+        GO TO 705
+      END IF
 C***VAX
 706   CONTINUE
       WRITE(*,700)
@@ -514,7 +543,11 @@ C
       IPLP3=ITMP3
       IPLP4=ITMP4
 Cav04 OPEN (UNIT=8,FILE='PLTDAT.NEC',STATUS='NEW',ERR=14)
-      OPEN (UNIT=8,FILE='PLTDAT.NEC',STATUS='UNKNOWN',ERR=14) ! av04
+      INQUIRE (UNIT=8, OPENED=LOPENED)
+      IF (.NOT. LOPENED) THEN
+        IF (PLTFILE .EQ. ' ') PLTFILE='PLTDAT.NEC'
+        OPEN (UNIT=8,FILE=PLTFILE,STATUS='UNKNOWN',ERR=14)
+      END IF
 C***
       GO TO 14
 C
