@@ -8598,6 +8598,11 @@ C  *****  Global variables		! av12
       INTEGER    BGNFLD(12), ENDFLD(12), TOTCOL, TOTFLD
       LOGICAL    FLDTRM
       DIMENSION  REAFLD(MAXREA)
+
+      LOGICAL    ISNUM
+      CHARACTER*1 CHTMP
+      ISNUM(CHTMP) = (CHTMP.GE.'0' .AND. CHTMP.LE.'9') .OR.
+     &               CHTMP.EQ.'+' .OR. CHTMP.EQ.'-'
 C
       READ(INUNIT, 8000, IOSTAT=IEOF) REC
       CALL UPCASE( REC, REC, TOTCOL )
@@ -8681,6 +8686,10 @@ C  Parse out integer values and store into integer buffer array.
              LENGTH= ENDFLD(I) - BGNFLD(I) + 1
              BUFFER= REC(BGNFLD(I):ENDFLD(I))
 
+C  The PL card carries a trailing plot filename after its integer fields; a
+C  non-numeric field lead marks the filename, treated as end-of-fields.
+             IF (CMND.EQ.'PL' .AND. .NOT.ISNUM(BUFFER(1:1))) RETURN
+
 Cav018	print *,i,'buf(1:1)=',buffer(1:1)
 
 	if (((cmnd.eq.'WG').or.(cmnd.eq.'GF')).and.
@@ -8703,6 +8712,10 @@ C  Parse out real values and store into real buffer array.
              DO 6000 I=J,TOTFLD
                   LENGTH= ENDFLD(I) - BGNFLD(I) + 1
                   BUFFER= REC(BGNFLD(I):ENDFLD(I))
+
+C  A four-integer PL card places its filename in the real-field range; the
+C  non-numeric field lead marks it, treated as end-of-fields.
+                  IF (CMND.EQ.'PL' .AND. .NOT.ISNUM(BUFFER(1:1))) RETURN
                   IND= INDEX( BUFFER(1:LENGTH), '.' )
                   IF (IND .EQ. 0) THEN
                        INDE= INDEX( BUFFER(1:LENGTH), 'E' )
